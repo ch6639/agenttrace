@@ -1,5 +1,5 @@
 # CI：lint + 单元测试 + 覆盖率（NFR-5：CI 全绿方可合并）
-# Sprint 1 核心模块落地后，为 pytest 增加 --cov-fail-under=70（对应 TC-22 验收）
+# 覆盖率 70% 门槛已启用（TC-22；核心模块 model/context/storage 于 Sprint 1 落地）
 name: CI
 
 on:
@@ -30,8 +30,8 @@ jobs:
       - name: Lint（ruff）
         run: ruff check .
 
-      - name: 测试 + 覆盖率
-        run: pytest --cov=agenttrace --cov-report=term-missing --cov-report=xml
+      - name: 测试 + 覆盖率（门槛 70%，NFR-5/TC-22）
+        run: pytest --cov=agenttrace --cov-fail-under=70 --cov-report=term-missing --cov-report=xml
 
       - name: 上传覆盖率报告
         uses: actions/upload-artifact@v4
