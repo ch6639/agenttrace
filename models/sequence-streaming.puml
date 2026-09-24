@@ -1,0 +1,37 @@
+@startuml 时序图-流式写回
+' M1 定稿（2026-09-17）：FR-2.5 SSE 流式响应的记录与写回
+' 借鉴 Langfuse"Span 先建占位、结束时 update 写回"模式（AT-DES-000 决策 #4）
+
+participant "Agent 业务线程" as App
+participant "llm()\n上下文管理器" as Llm
+participant "pipeline\n内存队列" as Q
+participant "flusher\n后台线程" as F
+database "SQLite\n(WAL)" as DB
+
+== 进入 with 块：占位 Span 先行入库 ==
+App -> Llm : with agenttrace.llm(model="qwen-plus")
+Llm -> Q : 入队 Span 占位\n（type=llm, status=running,\nis_stream=1, model）
+F -> DB : flusher 批量落盘\n→ 详情页立即可见"进行中"
+
+== 流式接收：内存聚合，不逐块写库 ==
+loop 每个 SSE chunk
+  App -> Llm : chunk = resp.next()
+  Llm -> Llm : 内存累积：output_parts.append()\ntoken_out 按 len(chunk)//4 估算累计
+end
+note right of Llm : 逐 chunk 入队会造成写入放大，\n故聚合只在内存进行（AT-DES-001 §5.3）
+
+== 流正常结束：一次 update 写回 ==
+App -> Llm : 流结束（with 块退出）
+Llm -> Llm : 汇总：output=拼接全文，\ntoken_in（usage 有则用真实值，\n无则估算并标记 estimated）
+Llm -> Q : 入队 Span 更新\n（status=success, output,\ntoken_in/out, end_time, duration_ms）
+F -> DB : 批量 UPSERT 写回 → FR-2.5 完成
+
+== 备选流：流中途异常（UC-01 备选流/UC-04 4a） ==
+App -> Llm : 流中断（网络异常/内容截断）
+Llm -> Llm : 保留已聚合的部分输出
+Llm -> Q : 入队 Span 更新\n（status=failed, output=部分聚合,\nstatus_message=中断原因与位置）
+F -> DB : 写回 → 详情页可见\n"聚合输出 + 中断点"用于定位
+
+== 极端情况：进程在流中被强杀 ==
+note over Llm, DB : 占位 Span 已落盘（is_stream=1,\nstatus 停留 running），内存聚合丢失\n→ 查看器将"running 且超时未更新"的\n流式 Span 标注为"疑似中断"（渲染层兜底）
+@enduml

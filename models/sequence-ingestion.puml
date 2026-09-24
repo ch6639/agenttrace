@@ -1,0 +1,47 @@
+@startuml 时序图-摄入管线
+' M1 定稿（2026-09-17）：UC-01 记录 Agent 运行（FR-2.3/2.4，NFR-3）
+' 借鉴 Langfuse"异步批量摄入"机制的单机等价物（AT-DES-000 决策 #5/#7）
+
+participant "Agent 业务线程" as App
+participant "intercept\n拦截器" as Icp
+participant "context\n上下文栈" as Ctx
+participant "pipeline\n内存队列" as Q
+participant "flusher\n后台线程" as F
+database "SQLite\n(WAL)" as DB
+
+== 任务开始 ==
+App -> Icp : @agenttrace.trace() 进入
+Icp -> Ctx : push 根上下文（trace_id）
+Icp -> Q : 入队 Trace 占位（status=running）+ 根 Span
+note right of Q : 入队即返回（微秒级），\n业务线程不等待落盘
+
+== 事件产生（LLM/工具/步骤）==
+App -> Icp : @tool / with llm() / log_step()
+Icp -> Ctx : 读取当前上下文 → 推导 parent_id
+Icp -> Q : 入队 Span 事件（含输入快照）
+
+App -> Icp : 函数抛出异常
+Icp -> Q : 入队 Span 更新（status=failed,\nstatus_message=异常栈摘要）
+note right of Icp : 异常照常向 Agent 抛出，\n业务行为零改变（FR-1.2）
+
+== 异步批量落盘 ==
+activate F
+F -> Q : 每 500ms 或攒满 32 条触发
+Q --> F : 取出整批事件
+F -> DB : 单事务批量 UPSERT\n（含 Span 占位的 UPDATE 合并）
+activate DB
+DB --> F : 成功
+deactivate DB
+F -> Q : 写失败 → 重试（≤3 次）
+F -> F : 仍失败：跳过该批 +\n控制台告警（旁路失效，NFR-3）
+deactivate F
+
+== 任务结束与进程退出 ==
+App -> Icp : @trace 返回/异常退出
+Icp -> Ctx : pop 根上下文
+Icp -> Q : 入队 Trace 终态\n（success/failed、end_time、total_tokens）
+App -> F : atexit（或显式 agenttrace.flush()）
+F -> Q : 排空队列（timeout=5s）
+F -> DB : 最后一批落盘
+note over F, DB : FR-2.4 口径：常态批量间隔 ≤500ms\n满足"1 秒内写入"；进程被强杀时，\n丢失上限 = 队列中未落盘的最后一批
+@enduml

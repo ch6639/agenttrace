@@ -1,0 +1,42 @@
+@startuml 组件图
+' M1 定稿（2026-09-17）：总体架构，依据 AT-DES-001 第 2 章
+
+skinparam componentStyle rectangle
+
+package "被测 Agent 进程（Python 3.11+）" {
+  [示例 Agent\nexamples/demo_agent\n（课程答疑 + 笔记整理）] as Agent
+
+  package "agenttrace SDK（零第三方依赖）" {
+    [api\n公开接口与初始化\ntrace/tool/llm/log_step/\nflush/shutdown/patch_openai] as API
+    [intercept\n拦截器\n装饰器 / LLM上下文 / openai补丁] as Intercept
+    [context\n上下文栈（contextvars）\n自动维护 parent_id] as Context
+    [model\n数据模型\nTrace / Span / 序列化截断] as Model
+    [pipeline\n摄入管线\n内存队列 + flusher 线程] as Pipeline
+    [storage\nSQLite 写入\nWAL / 批量事务 / UPSERT] as Storage
+    [mock\n离线回放\n（无网络/无密钥可用）] as Mock
+  }
+}
+
+database "SQLite（单文件）\nagenttrace.db\n（WAL 模式）" as DB
+
+package "查看器（一条命令：agenttrace ui）" {
+  [server\nFastAPI 只读查询 + 静态托管\n/api/traces  /api/traces/{id}  /api/stats] as Server
+  [web\nVue 3 + Element Plus + ECharts\n列表页 / 时间线详情 / 统计总览] as Web
+}
+
+Agent ..> API : ≤3 行接入（装饰器）
+API --> Intercept
+Intercept --> Context
+Intercept --> Model
+Intercept ..> Mock : Mock 模式时代替 LLM 应答
+Model --> Pipeline : 异步入队（业务线程不等待）
+Pipeline --> Storage : 批量单事务（≤500ms / 32条）
+Storage --> DB
+Server --> DB : 只读 SELECT
+Web --> Server : HTTP/JSON
+note bottom of Pipeline
+  旁路失效原则（NFR-3）：
+  队列满/写失败 → 重试后降级告警，
+  绝不中断 Agent 主流程
+end note
+@enduml

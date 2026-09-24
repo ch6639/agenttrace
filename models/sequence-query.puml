@@ -1,0 +1,45 @@
+@startuml 时序图-查询回放
+' M1 定稿（2026-09-17）：UC-02 回放与查看时间线 / UC-04 定位失败步骤
+' 含 FR-3.2 过滤、FR-4.1~4.4 展示要求
+
+actor 开发者 as Dev
+participant "web\nVue 3 查看器" as Web
+participant "server\nFastAPI" as Srv
+database "SQLite\n(WAL)" as DB
+
+== 启动与列表（FR-4.1 / FR-3.2）==
+Dev -> Web : agenttrace ui 一条命令启动后打开浏览器
+Web -> Srv : GET /api/traces?status=&t_from=&t_to=&\norder=start_time|latency|tokens&limit=&offset=
+Srv -> DB : SELECT traces（命中 idx_traces_start/status）
+DB --> Srv : 分页结果 + 总数
+Srv --> Web : {total, items:[…]}
+Web --> Dev : 列表页：时间/状态/步数/Token/耗时\n支持排序切换与过滤（时间倒序为默认）
+
+alt 无任何 trace
+  Web --> Dev : 空态提示 + 引导运行示例 Agent（UC-02 备选流 2a）
+end
+
+== 详情与时间线（FR-4.2 / FR-4.3）==
+Dev -> Web : 点击某条 trace（如失败记录）
+Web -> Srv : GET /api/traces/{id}
+Srv -> DB : SELECT trace + 全部 spans（展平，含 parent_id）
+DB --> Srv : trace + spans[]
+Srv --> Web : {trace, spans:[…]}
+Web -> Web : 前端按 parent_id 组装树 +\n按 start_time 计算瀑布条位置
+Web --> Dev : 时间线详情页：瀑布图（树形缩进横条）\n失败事件标红（UC-04 步骤③）
+
+Dev -> Web : 点击某个事件（横条）
+Web --> Dev : 下半区选中详情：完整 input/output、\ntoken、耗时、status_message
+
+alt 事件为流式（FR-4.4）
+  Web --> Dev : 展示聚合后的完整输出 + 累计 Token +\n流中断时展示部分聚合与中断原因
+end
+
+== 统计总览（FR-5.1 / UC-03）==
+Dev -> Web : 打开统计页
+Web -> Srv : GET /api/stats
+Srv -> DB : 聚合查询（COUNT/AVG/SUM +\n失败类型按 type×status_message 分组）
+DB --> Srv : 总 Token、成功率、平均步数、失败类型分布
+Srv --> Web : {total_tokens, success_rate,\navg_steps, failure_types}
+Web --> Dev : 指标卡 + 失败类型分布图（ECharts）
+@enduml

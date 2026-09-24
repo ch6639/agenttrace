@@ -1,0 +1,56 @@
+@startuml 类图
+' M1 定稿（2026-09-17）：依据 AT-DES-001 第 3 章数据设计
+' 相对 SRS 5.1 草案的变更：Trace +session_id（预留）；Span +status_message/+model；
+' duration_ms 对 step 可空；区分业务时间(start/end)与入库时间(created_at)
+
+class Trace {
+  +id : UUID
+  +name : str
+  +session_id : str
+  +status : str
+  +start_time : datetime
+  +end_time : datetime
+  +total_tokens : int
+  +latency_ms : int
+  +error : str
+  +created_at : datetime
+}
+
+class Span {
+  +id : UUID
+  +trace_id : UUID
+  +parent_id : UUID
+  +type : str
+  +name : str
+  +input : JSON
+  +output : JSON
+  +status : str
+  +status_message : str
+  +model : str
+  +token_in : int
+  +token_out : int
+  +start_time : datetime
+  +end_time : datetime
+  +duration_ms : int
+  +is_stream : bool
+  +created_at : datetime
+}
+
+Trace "1" -- "0..*" Span : 包含
+Span "0..1" -- "0..*" Span : 父子
+
+note top of Trace
+  status 取值：running / success / failed
+  session_id：可空，会话分组预留（本期 UI 不使用）
+  latency_ms：end_time - start_time
+end note
+
+note right of Span
+  type 取值：llm / tool / step
+  llm/tool 有起止时间（duration_ms 必填）
+  step 为瞬时事件（duration_ms 为空）
+  status_message：异常/状态说明，与 output 分离
+  model：仅 llm 类型使用
+  is_stream：流式 LLM 响应标记（FR-2.5）
+end note
+@enduml

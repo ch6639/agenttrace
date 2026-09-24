@@ -1,0 +1,40 @@
+# CI：lint + 单元测试 + 覆盖率（NFR-5：CI 全绿方可合并）
+# Sprint 1 核心模块落地后，为 pytest 增加 --cov-fail-under=70（对应 TC-22 验收）
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    name: lint+test (${{ matrix.os }} / py${{ matrix.python-version }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version: ["3.11"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: 安装依赖
+        run: python -m pip install -e ".[dev]"
+
+      - name: Lint（ruff）
+        run: ruff check .
+
+      - name: 测试 + 覆盖率
+        run: pytest --cov=agenttrace --cov-report=term-missing --cov-report=xml
+
+      - name: 上传覆盖率报告
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ matrix.os }}
+          path: coverage.xml

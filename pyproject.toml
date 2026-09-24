@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agenttrace"
+version = "0.1.0"
+description = "轻量级 Agent 运行可观测性工具：非侵入拦截 SDK + SQLite 存储 + Web 时间线回放"
+readme = "README.md"
+requires-python = ">=3.11"
+# SDK 零第三方依赖（SRS 约束）；openai 自动补丁为可选路径，运行时按需导入
+dependencies = []
+
+[project.scripts]
+agenttrace = "agenttrace.cli:main"
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "pytest-cov>=5", "ruff>=0.6"]
+server = ["fastapi>=0.115", "uvicorn>=0.30"]
+
+[tool.setuptools.packages.find]
+include = ["agenttrace*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B"]
