@@ -5,8 +5,7 @@
 
 > 《软件工程》课程项目实践作业（2026 秋）· 单人 + AI 协同开发 · SRS/设计文档见 [docs/](docs/)
 
-[![CI](https://github.com/YOUR_USERNAME/agenttrace/actions/workflows/ci.yml/badge.svg)](https://github.com/YOUR_USERNAME/agenttrace/actions/workflows/ci.yml)
-（建仓后替换 `YOUR_USERNAME`）
+[![CI](https://github.com/ch6639/agenttrace/actions/workflows/ci.yml/badge.svg)](https://github.com/ch6639/agenttrace/actions/workflows/ci.yml)
 
 ## 核心功能（对应 SRS F1~F6）
 
