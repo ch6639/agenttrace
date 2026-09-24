@@ -161,7 +161,9 @@ SRS 遗留待办：作者署名/指导教师待回填（提交前统一处理）
 
 暂缓项（按 2026-09-10 决定）：个人信息回填；教师选题确认。
 
+**仓库骨架已就绪（2026-09-17）**：`软件工程项目/agenttrace` 独立 Git 仓库完成首次提交（f30111e）——目录结构按 AT-DES-001、SDK 模块占位（docstring 注明职责）、CLI 骨架 + 5 个初始测试、GitHub Actions（ruff+pytest+coverage，ubuntu/windows 双平台）、文档与模型图快照入 docs/ 与 models/。本机已装 Python 3.11.9（winget 用户级），本地验证全绿（ruff 无告警、5 测试通过、覆盖率 96%）。待办：创建 GitHub 远端、推送、替换 README 徽章用户名、确认首条 CI 流水线全绿。
+
 下一步（M1 收尾 → Sprint 1 开工，约 2026-09-28 起）：
 1. M1 文档渲染导出（PlantUML 图导出 PNG，供设计文档 Word 版使用）
-2. 搭建 Git 仓库骨架（agenttrace/server/web/examples/tests 目录 + GitHub Actions CI）
+2. 创建 GitHub 远端仓库并推送（README 徽章用户名同步替换）
 3. Sprint 1 按 AT-DES-001 第 9 章 TDD 顺序推进（model → context → storage → pipeline → intercept → mock+demo → 垂直切片），开工即记录 dogfooding（SRS 附录 A.2）

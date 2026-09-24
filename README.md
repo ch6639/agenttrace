@@ -54,7 +54,10 @@ import agenttrace
 @agenttrace.trace()                 # 任务入口（G1：≤3 行接入）
 def tutor(question): ...
 
-agenttrace.ui_cmd := None           # `agenttrace ui` 一条命令打开查看器
+with agenttrace.llm(model="qwen-plus") as gen:    # LLM 调用记录（流式自动聚合）
+    ...
+
+# 终端执行 `agenttrace ui` → 一条命令打开 Web 查看器回放
 ```
 
 ## 仓库结构
