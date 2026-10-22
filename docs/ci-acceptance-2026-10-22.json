@@ -1,0 +1,31 @@
+{
+  "checked_at": "2026-10-22T07:00:34.889688+00:00",
+  "branch": "codex/m2-m3-closeout",
+  "source_commit": "ec4642ad046c7fdb867905ccc4e1d91385368509",
+  "push_status": "blocked_network",
+  "remote_ci_status": "not_run",
+  "run_url": null,
+  "push_attempts": [
+    {
+      "transport": "default",
+      "result": "connection reset"
+    },
+    {
+      "transport": "default",
+      "result": "github.com:443 connect timeout"
+    },
+    {
+      "transport": "HTTP/1.1",
+      "result": "github.com:443 connect timeout"
+    }
+  ],
+  "last_successful_remote_read": {
+    "ref": "refs/heads/main",
+    "commit": "a3287abc5f2bd094fd6e17f26509022c2e350210"
+  },
+  "next_command": "git push -u origin codex/m2-m3-closeout",
+  "limitations": [
+    "Local checks are not proof of Ubuntu/Windows remote CI success",
+    "Network failure is not a CI test failure"
+  ]
+}
