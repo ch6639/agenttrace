@@ -2,15 +2,16 @@
 
 | 项目名称 | AgentTrace —— Agent 运行可观测性工具 |  |  |
 |----------|--------------------------------------|------------------|------------|
-| 文档编号 | AT-DES-001 | 版本 | V1.0 |
+| 文档编号 | AT-DES-001 | 版本 | V1.1 |
 | 作者 | 【待填：学号-姓名】 | 指导教师 | 【待填】 |
-| 日期 | 2026-09-17 | 状态 | M1 定稿（4 项设计决策已确认；交付时转 Word 版） |
+| 日期 | 2026-10-15 | 状态 | 增补 D-11 持久性修正与实现验证；交付时转 Word 版 |
 
 **修订历史**
 
 | 版本 | 日期 | 修订内容 | 修订人 |
 |------|------|----------|--------|
 | V1.0 | 2026-09-17 | 初版定稿：总体架构、数据设计、SDK/REST/CLI 接口、关键机制、UI 概要、设计决策记录（D-01~D-10）、Sprint 1 任务分解 | 【待填】 |
+| V1.1 | 2026-10-15 | D-11：默认 durable、async 可选；根事件原子提交、故障诊断、非侵入基线及模型图同步 | Codex 协助，作者待审 |
 
 ---
 
@@ -75,8 +76,8 @@
 | `agenttrace/intercept` | 装饰器（trace/tool）、llm() 上下文、patch_openai | 异常透传并记录；IO 捕获开关 | FR-1.2、FR-2.1、FR-2.2 |
 | `agenttrace/context` | contextvars 维护当前 span 栈 | 嵌套自动推导 parent_id，开发者零感知 | FR-2.3 |
 | `agenttrace/model` | Trace/Span 数据类、JSON 序列化、大对象截断（D-08） | 输入快照在入队前完成 | FR-2.x |
-| `agenttrace/pipeline` | 有界内存队列、flusher 线程、重试与降级、flush/shutdown | 业务线程只做"入队即返回" | FR-2.4、NFR-1、NFR-3 |
-| `agenttrace/storage` | DDL/迁移、批量 UPSERT、连接管理 | WAL + synchronous=NORMAL | FR-3.1 |
+| `agenttrace/pipeline` | durable 串行提交确认；可选 async 队列；有限重试、诊断、flush/shutdown | SDK 默认 durable，根 Trace/Span 同事务 | FR-2.4、NFR-1、NFR-3 |
+| `agenttrace/storage` | DDL/迁移、批量 UPSERT、连接管理 | WAL；durable=FULL、async=NORMAL；拒绝未来版本 | FR-3.1 |
 | `agenttrace/mock` | 预存应答回放，代替真实 LLM API | 环境变量 `AGENTTRACE_MOCK=1` 启用 | FR-1.3、FR-6.2 |
 | `agenttrace/cli` | `ui` / `seed` 子命令 | 一条命令启动查看器；造数兼作 TC-19 数据源 | NFR-4、TC-19 |
 | `server/` | FastAPI 只读查询 + 静态托管 | OpenAPI 文档自动生成（FastAPI 自带） | FR-3.2、FR-4.x、FR-5.1 |
@@ -91,7 +92,7 @@
 ### 2.4 架构设计原则（源自 AT-DES-000）
 
 1. **旁路失效**（NFR-3）：观测链路任何环节故障只降级、不阻断业务；
-2. **异步摄入**（借鉴 Langfuse #5/#7）：业务线程只入队，落盘由后台线程批量完成；
+2. **持久性优先**（D-11）：SDK 默认逐事件提交确认；异步批量保留为显式选择并说明强杀风险；
 3. **零依赖核心**：SDK 仅用标准库；openai 补丁为可选路径（D-01）；
 4. **数据先持久化**：SQLite WAL 即"先落盘再处理"的单机等价物。
 
@@ -115,7 +116,7 @@
 
 ```sql
 PRAGMA journal_mode = WAL;      -- "先落盘"原则的单机等价物；写不阻塞读
-PRAGMA synchronous  = NORMAL;   -- WAL 下安全且快，配合批量事务
+PRAGMA synchronous  = FULL;     -- 默认 durable；显式 async 时改为 NORMAL
 PRAGMA user_version = 1;        -- 模式版本；启动时按版本增量迁移（本期仅 v1）
 
 CREATE TABLE traces (
@@ -192,10 +193,11 @@ with agenttrace.llm(model="qwen-plus") as gen:     # LLM 调用（显式，通�
 agenttrace.log_step("decide", {"next": "search_notes"})          # 瞬时决策事件
 
 # —— 生命周期 ——
-agenttrace.init(db_path="./agenttrace.db", enabled=True)   # 可选；不调用则用默认值（D-09）
+agenttrace.init(db_path="./agenttrace.db", enabled=True, durability="durable")
 agenttrace.flush(timeout=5)         # 排空队列（阻塞至落盘）
 agenttrace.shutdown()               # flush + 停止 flusher；atexit 已自动注册
-agenttrace.patch_openai()           # 可选自动补丁：未安装 openai 包则静默跳过（D-01）
+agenttrace.diagnostics()            # 模式/丢弃/失败/写入计数；shutdown 后保留统计
+# 规划中，尚未实现：agenttrace.patch_openai()（D-01）
 ```
 
 **接口语义要点**：
@@ -233,18 +235,20 @@ agenttrace.patch_openai()           # 可选自动补丁：未安装 openai 包�
 | 参数 | 值 | 说明 |
 |------|-----|------|
 | 队列容量 | 1024 条（有界） | 满时丢弃最旧 + 计数告警（旁路失效） |
-| 批量触发 | 32 条 或 500ms | 满足 FR-2.4"1 秒内写入" |
+| 批量触发（仅 async） | 32 条 或 500ms | 触发阈值；<=1s 可见性由独立连接测试验证 |
 | 写入方式 | 单事务批量 UPSERT | 占位 INSERT 与后续 UPDATE 合并落盘 |
 | 写失败 | 重试 ≤3 次 → 跳过该批 + 控制台告警 | 绝不抛入业务线程（NFR-3） |
-| 退出兜底 | atexit 自动 + 显式 flush(timeout=5s) | 丢失上限 = 强杀时队列中未落盘的最后一批 |
+| 退出兜底 | atexit 自动 + 显式 flush(timeout=5s) | 正常退出排空；强杀可能丢队列与 in-flight 批，不保证最后一条 |
 
-**FR-2.4 验收口径**（TC-07）：常态批量间隔 ≤500ms 满足"1 秒内写入"；"最多丢最后一条"按"最多丢最后一批（≤32 条）"从严解释并以故障注入测试标定——若评审认为必须逐条落盘，则改为 span 占位即时单条 INSERT + 后台聚合 UPDATE（性能略降，M4 对比后定）。
+**FR-2.4 实现修正（D-11，2026-10-15）**：上表的有界队列/32 条/500ms 仅适用于显式 async 模式；32 是触发阈值，不是最大批长，该模式不保证强杀只丢最后一条。SDK 默认 durable：业务线程经管线写锁串行提交单个事件，根 Trace/Span 同事务，SQLite WAL + FULL；健康存储下返回前已提交，强杀时只有当前未确认事件可能回滚。提交前/事务中/提交后强杀测试均验证此前 20 条步骤与已完成 LLM 输出/Token 可从独立只读连接读取，不依赖 flush/atexit。两种模式均通过常态 <=1s 可见性测试。存储错误仍旁路降级，诊断失败计数和 flush=False 表明不再保证该次写入成功。
+
+写锁保护 durable 模式的共享连接，async 由后台线程独占连接。SQLite 锁等待每次 200ms，最多重试 3 次；故障不能抛入业务。初始化失败关闭连接；未来 schema 版本拒绝读写，避免旧 SDK 误写新库。running Trace 的 Token 随 Span UPSERT 在同事务内按实际数据重算；重复更新不重复累计。diagnostics() 在 shutdown 后保留本轮最终状态。
 
 ### 5.2 上下文栈与嵌套（FR-2.3）
 
 - `contextvars.ContextVar` 维护"当前 span 栈"，`@trace`/`@tool`/`with llm()` 进入即 push、退出即 pop，parent_id 自动取栈顶；
 - 协程安全：asyncio task 继承上下文副本，嵌套关系正确；
-- **已知限制（写入文档）**：业务代码把工具调用提交到线程池/其他线程时，ContextVar 不随线程传播，该 span 将挂到根节点。本期不处理（SRS 非目标：分布式/多进程追踪）；demo Agent 不使用线程池，不受影响。
+- **已知限制（2026-10-15 校正）**：ContextVar 不随线程池传播，线程内无活动 trace 的 tool/llm 将不记录，不会自动挂到原根节点。异步子任务必须在根任务结束前 await。本期未实现跨线程传播；demo Agent 不使用线程池。
 
 ### 5.3 流式写回（FR-2.5）
 
@@ -252,11 +256,17 @@ agenttrace.patch_openai()           # 可选自动补丁：未安装 openai 包�
 
 ### 5.4 Mock 模式（FR-1.3 / FR-6.2）
 
-`AGENTTRACE_MOCK=1` 时，`llm()` 返回 `examples/mock/responses.jsonl` 中预存应答（按 model 维度轮次顺序取用），照常产生真实形状的 span 与 token 统计；demo Agent 双工具全流程离线可跑。
+`llm()` 始终返回 SpanHandle，与 §4.1 协议一致，不替换业务调用。示例 Agent 默认选择 MockClient；`AGENTTRACE_MOCK=1` 可强制 Mock，`--real` 切换真实兼容接口。MockClient 从随 SDK 打包的 `agenttrace/data/mock_responses.jsonl` 按 model 顺序回放；记录形状和 token 字段与真实路径一致，双工具全流程离线可跑。该修正消除旧设计中“handle/预存应答两种返回值”的矛盾。
 
 ### 5.5 性能预算（NFR-1，M4 标定）
 
-单事件开销 = 对象构造 + JSON 序列化 + 入队（微秒级）；落盘由批量事务摊薄（毫秒级/批，异步不占业务线程）。预估总开销 <2%，M4 以 TC-18 实测定稿阈值。
+默认 durable 将磁盘确认纳入业务耗时，不能沿用旧异步方案“预估 <2%”。当前矩阵中 durable 的 200ms 多步骤任务约 5.18%，20ms 多步骤约 39.93%；async 分别约 0.37% / 2.81%，但不提供强杀丢失上限。根 Trace/Span 合并事务降低 fsync 次数；最终性能验收仍需更多真实负载，保持 10% 暂定目标不变。原始数据见 performance-comparison.json 与完善记录。
+
+2026-10-22 补充：Span Token 汇总改为同事务内按实际存储差值更新，避免每次写入全树重算；
+同批 Trace 覆盖聚合时重算，重复写入、Token 回退和回滚均有回归。3000 Span 的算法对照
+见 ingestion-profile-2026-10-22.json（WAL+NORMAL，仅算法对照）。默认 durable 新矩阵各 30 次，
+20ms 多步骤约 70.21%、200ms 约 8.86%；短任务仍未达标，不修改 FULL 或默认确认语义。
+最新边界与证据见 [阶段收尾记录](阶段收尾与验收记录-2026-10-22.md)。
 
 ---
 
@@ -283,11 +293,12 @@ agenttrace.patch_openai()           # 可选自动补丁：未安装 openai 包�
 | D-03 | 时间线 = 瀑布图 + 选中详情双区 | 纯瀑布（浮层）/ 垂直列表 | 兼顾直观性与信息完整；用户确认 |
 | D-04 | Element Plus + ECharts；瀑布条自绘 | Naive UI / 手写样式 | 组件开箱即用、中文文档全；甘特条属布局元素自绘最可控。用户确认 |
 | D-05 | SQLite 两表 + 索引，**不做**宽表冗余 | Langfuse 式 observation 宽表 | 宽表是 ClickHouse 免 join 的 OLAP 优化；SQLite 无此痛点（AT-DES-000 #10） |
-| D-06 | 摄入 = 有界内存队列 + 批量 UPSERT + atexit | 同步逐条写 | 借鉴 Langfuse 异步批量摄入；开销与可靠性兼顾（AT-DES-000 #5/#7） |
+| D-06 | 原方案：有界队列 + 批量 UPSERT + atexit；默认模式由 D-11 修订 | 同步逐条写 | 异步方案保留为显式选择，不再作为满足强杀持久性的默认方案 |
 | D-07 | 评估闭环（Score/Dataset/Experiment）不纳入 | — | 范围蔓延；FR-5.1 失败类型分布已覆盖最小价值（AT-DES-000 #12），维持 SRS 非目标 |
 | D-08 | input/output 64KiB 截断；token 缺失时 len//4 近似并标记 | 无限制/引入分词器精确计数 | 防库膨胀、守零依赖；估算透明标记，M4 可对比误差 |
 | D-09 | 默认库位置 `./agenttrace.db`，`init()`/CLI 可覆盖 | 用户主目录 | 当前目录直观可见、demo 友好；`agenttrace ui --db` 指定 |
 | D-10 | 垂直切片纳入 Sprint 1 尾部 | 只做造数脚本 / 严格按里程碑 | 10 月中即可见 UI、提前暴露前端风险；造数兼作 TC-19 数据源。用户确认，不改 SRS |
+| D-11 | 默认 durable 逐事件确认，根 Trace/Span 原子提交；async 可选 | 持久化队列 / 仅缩短异步间隔 | 保持 SRS 强杀要求；简单两表方案不引入恢复服务，代价由真实性能矩阵公开 |
 
 ---
 

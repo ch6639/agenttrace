@@ -11,7 +11,17 @@ Vue 3 + Vite + **Element Plus**（表格/标签/分页/布局）+ **ECharts**（
 | 时间线详情 | `/traces/:id` | 上半区瀑布图（失败标红），下半区选中事件详情 |
 | 统计总览 | `/stats` | 指标卡 + 失败类型分布 + 趋势图 |
 
-## 初始化计划
+## 本地运行
 
-Sprint 1 垂直切片：`npm create vite@latest` 初始化 + 列表页只读版（对接
-`agenttrace seed` 造数与 `GET /api/traces`）；M3 补全详情页与统计页。
+需要 Node.js 22.12+ 或 24+ 与 npm。在此目录执行 `npm ci`，随后 `npm run build`。
+产物进入 `../server/static/`，由 `agenttrace ui` 同端口托管；运行时没有 CDN 依赖。
+开发时先启动 `agenttrace ui`，再执行 `npm run dev`，Vite 将 `/api` 代理到 8320 端口。
+
+当前列表、详情和统计页已实现。详情中的输入输出使用文本插值展示，不执行记录中的 HTML。
+统计成功率分母为已结束任务；平均事件数包含根事件。每日趋势图为概要设计增强项，尚未实现。
+构建产物不进入 Git，发布 wheel/离线演示包前须先构建；锁文件进入 Git，CI 使用 `npm ci`。
+
+2026-10-15 完善：按需注册 Element Plus，ECharts 拆为进入统计页后加载的异步组件。
+首屏 JS 约 489.60 KB（gzip 165.28 KB），统计图 JS 445.12 KB（gzip 152.03 KB）；
+不在列表页加载图表。`main` 的 `data-last-load-ms` / `data-view-ready-ms` 提供验收用
+DOM 就绪计时，后者相对当前导航起点，不包括异步统计图完全绘制的时间。

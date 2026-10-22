@@ -1,0 +1,398 @@
+{
+  "measured_at": "2026-10-22T06:49:03.309315+00:00",
+  "python": "3.11.9",
+  "platform": "Windows-10-10.0.26200-SP0",
+  "cases": [
+    {
+      "durability": "durable",
+      "profile": "entry_only",
+      "workload_delay_ms": 0,
+      "iterations": 30,
+      "baseline": {
+        "mean_ms": 0.0004,
+        "p95_ms": 0.0007,
+        "max_ms": 0.0007
+      },
+      "instrumented": {
+        "mean_ms": 1.1912,
+        "p95_ms": 1.4101,
+        "max_ms": 1.5082
+      },
+      "extra_mean_ms": 1.1908,
+      "overhead_percent": 285796.0,
+      "within_10_percent": false,
+      "flush_ok": true,
+      "final_drain_ms": 0.0025,
+      "diagnostics": {
+        "enabled": true,
+        "initialized": true,
+        "durability": "durable",
+        "initialization_failed": false,
+        "queued": 0,
+        "dropped": 0,
+        "failed_batches": 0,
+        "written_events": 124
+      }
+    },
+    {
+      "durability": "durable",
+      "profile": "entry_only",
+      "workload_delay_ms": 20,
+      "iterations": 30,
+      "baseline": {
+        "mean_ms": 20.4585,
+        "p95_ms": 20.6329,
+        "max_ms": 22.3336
+      },
+      "instrumented": {
+        "mean_ms": 22.5982,
+        "p95_ms": 23.7956,
+        "max_ms": 24.048
+      },
+      "extra_mean_ms": 2.1397,
+      "overhead_percent": 10.46,
+      "within_10_percent": false,
+      "flush_ok": true,
+      "final_drain_ms": 0.0023,
+      "diagnostics": {
+        "enabled": true,
+        "initialized": true,
+        "durability": "durable",
+        "initialization_failed": false,
+        "queued": 0,
+        "dropped": 0,
+        "failed_batches": 0,
+        "written_events": 124
+      }
+    },
+    {
+      "durability": "durable",
+      "profile": "entry_only",
+      "workload_delay_ms": 200,
+      "iterations": 30,
+      "baseline": {
+        "mean_ms": 201.2532,
+        "p95_ms": 202.4393,
+        "max_ms": 206.5414
+      },
+      "instrumented": {
+        "mean_ms": 205.505,
+        "p95_ms": 208.0668,
+        "max_ms": 211.0709
+      },
+      "extra_mean_ms": 4.2518,
+      "overhead_percent": 2.11,
+      "within_10_percent": true,
+      "flush_ok": true,
+      "final_drain_ms": 0.0059,
+      "diagnostics": {
+        "enabled": true,
+        "initialized": true,
+        "durability": "durable",
+        "initialization_failed": false,
+        "queued": 0,
+        "dropped": 0,
+        "failed_batches": 0,
+        "written_events": 124
+      }
+    },
+    {
+      "durability": "durable",
+      "profile": "multi_step",
+      "workload_delay_ms": 0,
+      "iterations": 30,
+      "baseline": {
+        "mean_ms": 0.0023,
+        "p95_ms": 0.0038,
+        "max_ms": 0.0046
+      },
+      "instrumented": {
+        "mean_ms": 13.4314,
+        "p95_ms": 16.8776,
+        "max_ms": 17.2775
+      },
+      "extra_mean_ms": 13.429,
+      "overhead_percent": 572259.8,
+      "within_10_percent": false,
+      "flush_ok": true,
+      "final_drain_ms": 0.0048,
+      "diagnostics": {
+        "enabled": true,
+        "initialized": true,
+        "durability": "durable",
+        "initialization_failed": false,
+        "queued": 0,
+        "dropped": 0,
+        "failed_batches": 0,
+        "written_events": 403
+      }
+    },
+    {
+      "durability": "durable",
+      "profile": "multi_step",
+      "workload_delay_ms": 20,
+      "iterations": 30,
+      "baseline": {
+        "mean_ms": 21.2189,
+        "p95_ms": 22.2484,
+        "max_ms": 22.5458
+      },
+      "instrumented": {
+        "mean_ms": 36.1158,
+        "p95_ms": 40.652,
+        "max_ms": 41.6848
+      },
+      "extra_mean_ms": 14.8969,
+      "overhead_percent": 70.21,
+      "within_10_percent": false,
+      "flush_ok": true,
+      "final_drain_ms": 0.0056,
+      "diagnostics": {
+        "enabled": true,
+        "initialized": true,
+        "durability": "durable",
+        "initialization_failed": false,
+        "queued": 0,
+        "dropped": 0,
+        "failed_batches": 0,
+        "written_events": 403
+      }
+    },
+    {
+      "durability": "durable",
+      "profile": "multi_step",
+      "workload_delay_ms": 200,
+      "iterations": 30,
+      "baseline": {
+        "mean_ms": 202.5572,
+        "p95_ms": 204.8125,
+        "max_ms": 206.0383
+      },
+      "instrumented": {
+        "mean_ms": 220.4976,
+        "p95_ms": 226.1426,
+        "max_ms": 237.997
+      },
+      "extra_mean_ms": 17.9404,
+      "overhead_percent": 8.86,
+      "within_10_percent": true,
+      "flush_ok": true,
+      "final_drain_ms": 0.0055,
+      "diagnostics": {
+        "enabled": true,
+        "initialized": true,
+        "durability": "durable",
+        "initialization_failed": false,
+        "queued": 0,
+        "dropped": 0,
+        "failed_batches": 0,
+        "written_events": 403
+      }
+    },
+    {
+      "durability": "async",
+      "profile": "entry_only",
+      "workload_delay_ms": 0,
+      "iterations": 30,
+      "baseline": {
+        "mean_ms": 0.0009,
+        "p95_ms": 0.0019,
+        "max_ms": 0.0067
+      },
+      "instrumented": {
+        "mean_ms": 0.3795,
+        "p95_ms": 0.5797,
+        "max_ms": 1.1353
+      },
+      "extra_mean_ms": 0.3786,
+      "overhead_percent": 42543.82,
+      "within_10_percent": false,
+      "flush_ok": true,
+      "final_drain_ms": 0.0113,
+      "diagnostics": {
+        "enabled": true,
+        "initialized": true,
+        "durability": "async",
+        "initialization_failed": false,
+        "queued": 0,
+        "dropped": 0,
+        "failed_batches": 0,
+        "written_events": 124
+      }
+    },
+    {
+      "durability": "async",
+      "profile": "entry_only",
+      "workload_delay_ms": 20,
+      "iterations": 30,
+      "baseline": {
+        "mean_ms": 21.3442,
+        "p95_ms": 23.0437,
+        "max_ms": 24.4028
+      },
+      "instrumented": {
+        "mean_ms": 21.822,
+        "p95_ms": 23.2327,
+        "max_ms": 23.6428
+      },
+      "extra_mean_ms": 0.4777,
+      "overhead_percent": 2.24,
+      "within_10_percent": true,
+      "flush_ok": true,
+      "final_drain_ms": 0.0649,
+      "diagnostics": {
+        "enabled": true,
+        "initialized": true,
+        "durability": "async",
+        "initialization_failed": false,
+        "queued": 0,
+        "dropped": 0,
+        "failed_batches": 0,
+        "written_events": 124
+      }
+    },
+    {
+      "durability": "async",
+      "profile": "entry_only",
+      "workload_delay_ms": 200,
+      "iterations": 30,
+      "baseline": {
+        "mean_ms": 200.5554,
+        "p95_ms": 201.111,
+        "max_ms": 201.8057
+      },
+      "instrumented": {
+        "mean_ms": 201.3146,
+        "p95_ms": 203.0986,
+        "max_ms": 207.3176
+      },
+      "extra_mean_ms": 0.7591,
+      "overhead_percent": 0.38,
+      "within_10_percent": true,
+      "flush_ok": true,
+      "final_drain_ms": 0.005,
+      "diagnostics": {
+        "enabled": true,
+        "initialized": true,
+        "durability": "async",
+        "initialization_failed": false,
+        "queued": 0,
+        "dropped": 0,
+        "failed_batches": 0,
+        "written_events": 124
+      }
+    },
+    {
+      "durability": "async",
+      "profile": "multi_step",
+      "workload_delay_ms": 0,
+      "iterations": 30,
+      "baseline": {
+        "mean_ms": 0.0007,
+        "p95_ms": 0.0017,
+        "max_ms": 0.0025
+      },
+      "instrumented": {
+        "mean_ms": 0.2444,
+        "p95_ms": 0.322,
+        "max_ms": 0.3423
+      },
+      "extra_mean_ms": 0.2437,
+      "overhead_percent": 33232.73,
+      "within_10_percent": false,
+      "flush_ok": true,
+      "final_drain_ms": 0.0069,
+      "diagnostics": {
+        "enabled": true,
+        "initialized": true,
+        "durability": "async",
+        "initialization_failed": false,
+        "queued": 0,
+        "dropped": 0,
+        "failed_batches": 0,
+        "written_events": 403
+      }
+    },
+    {
+      "durability": "async",
+      "profile": "multi_step",
+      "workload_delay_ms": 20,
+      "iterations": 30,
+      "baseline": {
+        "mean_ms": 20.8346,
+        "p95_ms": 21.1641,
+        "max_ms": 21.3091
+      },
+      "instrumented": {
+        "mean_ms": 21.3253,
+        "p95_ms": 21.6675,
+        "max_ms": 23.3574
+      },
+      "extra_mean_ms": 0.4906,
+      "overhead_percent": 2.35,
+      "within_10_percent": true,
+      "flush_ok": true,
+      "final_drain_ms": 0.0212,
+      "diagnostics": {
+        "enabled": true,
+        "initialized": true,
+        "durability": "async",
+        "initialization_failed": false,
+        "queued": 0,
+        "dropped": 0,
+        "failed_batches": 0,
+        "written_events": 403
+      }
+    },
+    {
+      "durability": "async",
+      "profile": "multi_step",
+      "workload_delay_ms": 200,
+      "iterations": 30,
+      "baseline": {
+        "mean_ms": 202.2501,
+        "p95_ms": 201.7313,
+        "max_ms": 243.0129
+      },
+      "instrumented": {
+        "mean_ms": 201.7066,
+        "p95_ms": 202.7443,
+        "max_ms": 205.3745
+      },
+      "extra_mean_ms": -0.5434,
+      "overhead_percent": -0.27,
+      "within_10_percent": true,
+      "flush_ok": true,
+      "final_drain_ms": 0.0122,
+      "diagnostics": {
+        "enabled": true,
+        "initialized": true,
+        "durability": "async",
+        "initialization_failed": false,
+        "queued": 0,
+        "dropped": 0,
+        "failed_batches": 0,
+        "written_events": 403
+      }
+    }
+  ],
+  "query": {
+    "rows": 1000,
+    "spans_per_trace": 6,
+    "sqlite": {
+      "mean_ms": 5.0827,
+      "p95_ms": 5.7579,
+      "max_ms": 7.4581
+    },
+    "asgi_test_client": {
+      "mean_ms": 18.8063,
+      "p95_ms": 20.5249,
+      "max_ms": 20.565
+    }
+  },
+  "limitations": [
+    "模拟等待负载，无真实 LLM；冷/热浏览器和网络传输需另测",
+    "async 计时为业务调用延迟，排空在计时外，且不提供强杀丢失上限",
+    "单机短时采样受调度/磁盘/并发进程影响，不代表所有工作负载"
+  ]
+}

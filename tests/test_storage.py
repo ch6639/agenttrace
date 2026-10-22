@@ -6,6 +6,8 @@
 
 import sqlite3
 
+import pytest
+
 from agenttrace.model import Span, Trace, dumps
 from agenttrace.storage import SCHEMA_VERSION, Storage
 
@@ -119,3 +121,97 @@ def test_span_parent_tree_roundtrip(tmp_path: object) -> None:
     finally:
         conn.close()
         s.close()
+
+
+def test_invalid_span_rolls_back_trace_in_same_transaction(tmp_path):
+    db = tmp_path / "rollback.db"
+    storage = Storage(db)
+    trace = Trace(name="rollback")
+    invalid = Span(trace_id=trace.id, parent_id=None, type="step", name="invalid").to_row()
+    invalid["name"] = None
+    try:
+        with pytest.raises(sqlite3.IntegrityError):
+            storage.write_batch([trace.to_row()], [invalid])
+        with sqlite3.connect(db) as conn:
+            assert conn.execute("SELECT COUNT(*) FROM traces").fetchone()[0] == 0
+            assert conn.execute("SELECT COUNT(*) FROM spans").fetchone()[0] == 0
+    finally:
+        storage.close()
+
+
+def test_future_schema_is_rejected_without_changing_database(tmp_path):
+    db = tmp_path / "future.db"
+    conn = sqlite3.connect(db)
+    conn.execute("PRAGMA user_version=999")
+    conn.close()
+    with pytest.raises(sqlite3.DatabaseError, match="schema"):
+        Storage(db)
+    # 失败的构造函数必须关掉连接，Windows 下文件也能立即移动。
+    renamed = db.with_name("future-renamed.db")
+    db.rename(renamed)
+    with sqlite3.connect(renamed) as conn:
+        assert conn.execute("PRAGMA user_version").fetchone()[0] == 999
+
+
+def test_running_trace_tokens_reflect_persisted_spans_without_double_counting(tmp_path):
+    db = tmp_path / "running.db"
+    storage = Storage(db)
+    trace = Trace(name="running")
+    span = Span(trace_id=trace.id, parent_id=None, type="llm", name="llm")
+    try:
+        storage.write_batch([trace.to_row()], [span.to_row()])
+        span.finish("success", token_in=10, token_out=20)
+        storage.write_batch([], [span.to_row()])
+        storage.write_batch([], [span.to_row()])
+        with sqlite3.connect(db) as conn:
+            assert conn.execute("SELECT status,total_tokens FROM traces").fetchone() == (
+                "running", 30,
+            )
+    finally:
+        storage.close()
+
+
+def test_token_updates_handle_duplicates_decreases_and_trace_replacement(tmp_path):
+    storage = Storage(tmp_path / "delta.db")
+    trace = Trace(name="delta")
+    first = Span(trace_id=trace.id, parent_id=None, type="llm", name="first")
+    second = Span(trace_id=trace.id, parent_id=None, type="llm", name="second")
+    try:
+        storage.write_batch([trace.to_row()], [])
+        first.finish("success", token_in=10, token_out=20)
+        second.finish("success", token_in=3, token_out=4)
+        storage.write_batch([], [first.to_row(), first.to_row(), second.to_row()])
+        assert storage._conn.execute("SELECT total_tokens FROM traces").fetchone()[0] == 37
+        first.finish("success", token_in=0, token_out=0)
+        storage.write_batch([], [first.to_row(), first.to_row()])
+        assert storage._conn.execute("SELECT total_tokens FROM traces").fetchone()[0] == 7
+        trace.finish("success", total_tokens=999)  # 同批聚合覆盖后也应以实际 Span 为准。
+        storage.write_batch([trace.to_row()], [second.to_row()])
+        assert storage._conn.execute("SELECT total_tokens FROM traces").fetchone()[0] == 7
+        invalid = second.to_row() | {"name": None}
+        with pytest.raises(sqlite3.IntegrityError):
+            storage.write_batch([], [first.to_row() | {"token_in": 100}, invalid])
+        assert storage._conn.execute("SELECT total_tokens FROM traces").fetchone()[0] == 7
+        assert storage._conn.execute(
+            "SELECT token_in FROM spans WHERE id=?", (first.id,),
+        ).fetchone()[0] == 0
+    finally:
+        storage.close()
+
+
+def test_large_batch_and_retries_keep_exact_tokens_without_scanning_entire_tree(tmp_path):
+    storage = Storage(tmp_path / "large.db")
+    trace = Trace(name="large")
+    spans = [Span(trace_id=trace.id, parent_id=None, type="llm", name=str(i), token_in=1)
+             for i in range(1200)]
+    try:
+        storage.write_batch([trace.to_row()], [span.to_row() for span in spans])
+        statements = []
+        storage._conn.set_trace_callback(statements.append)
+        spans[0].finish("success", token_in=2, token_out=1)
+        storage.write_batch([], [spans[0].to_row()])
+        storage.write_batch([], [spans[0].to_row()])
+        assert storage._conn.execute("SELECT total_tokens FROM traces").fetchone()[0] == 1202
+        assert not any("SUM(" in statement.upper() for statement in statements)
+    finally:
+        storage.close()

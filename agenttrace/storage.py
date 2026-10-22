@@ -1,10 +1,10 @@
 """SQLite 存储层（agenttrace/storage，FR-3.1）。
 
 职责（AT-DES-001 §3.2，DDL 定稿）：
-- DDL 建表（traces/spans 两表 + 索引，PRAGMA WAL/synchronous=NORMAL）；
+- DDL 建表（traces/spans 两表 + 索引，WAL；默认 FULL，可选 async 用 NORMAL）；
 - 按 PRAGMA user_version 增量迁移（本期 v1）；
 - 单事务批量 UPSERT（占位 INSERT 与终态 UPDATE 合并落盘，决策 #4/#6）；
-- 连接管理：带 check_same_thread=False，但按设计仅由 flusher 单线程独占写。
+- 连接管理：check_same_thread=False；durable 由管线写锁串行化，async 由 flusher 独占写。
 
 Sprint 1 任务 3（TDD：tests/test_storage.py 先行）。
 """
@@ -80,6 +80,7 @@ VALUES (:id, :trace_id, :parent_id, :type, :name, :input, :output, :status,
         :duration_ms, :is_stream, :created_at)
 ON CONFLICT(id) DO UPDATE SET
     output         = excluded.output,
+    model          = excluded.model,
     status         = excluded.status,
     status_message = excluded.status_message,
     token_in       = excluded.token_in,
@@ -92,15 +93,21 @@ ON CONFLICT(id) DO UPDATE SET
 class Storage:
     """SQLite 写侧存储。查询（SELECT）由 server 侧另行只读访问（M3/垂直切片）。"""
 
-    def __init__(self, db_path: str | Path) -> None:
+    def __init__(self, db_path: str | Path, *, durable: bool = True) -> None:
         self.db_path = str(db_path)
-        self._conn = sqlite3.connect(self.db_path, check_same_thread=False)
-        self._conn.execute("PRAGMA journal_mode=WAL")
-        self._conn.execute("PRAGMA synchronous=NORMAL")
-        self._migrate()
+        self._conn = sqlite3.connect(self.db_path, check_same_thread=False, timeout=0.2)
+        try:
+            self._migrate()
+            self._conn.execute("PRAGMA journal_mode=WAL")
+            self._conn.execute("PRAGMA synchronous=" + ("FULL" if durable else "NORMAL"))
+        except Exception:
+            self._conn.close()
+            raise
 
     def _migrate(self) -> None:
         version = self._conn.execute("PRAGMA user_version").fetchone()[0]
+        if version > SCHEMA_VERSION:
+            raise sqlite3.DatabaseError("unsupported schema version")
         if version < 1:
             self._conn.executescript(_DDL_V1)
             self._conn.execute(f"PRAGMA user_version={SCHEMA_VERSION}")
@@ -113,9 +120,46 @@ class Storage:
         spans: Iterable[Mapping[str, Any]],
     ) -> None:
         """单事务批量 UPSERT：本批 trace 行与 span 行原子落盘（决策 #6）。"""
+        trace_rows, span_rows = list(traces), list(spans)
         with self._conn:
-            self._conn.executemany(_UPSERT_TRACE, list(traces))
-            self._conn.executemany(_UPSERT_SPAN, list(spans))
+            self._conn.executemany(_UPSERT_TRACE, trace_rows)
+            span_ids = {row["id"] for row in span_rows}
+            previous = self._span_tokens(span_ids)
+            self._conn.executemany(_UPSERT_SPAN, span_rows)
+            current = self._span_tokens(span_ids)
+            deltas: dict[str, int] = {}
+            for sign, rows in ((-1, previous), (1, current)):
+                for trace_id, tokens in rows.values():
+                    deltas[trace_id] = deltas.get(trace_id, 0) + sign * tokens
+            replaced = {row["id"] for row in trace_rows}
+            # 普通 span 只更新已提交用量的差值，避免 N 个步骤触发 O(N²) 全树扫描。
+            # 同批 Trace UPSERT 覆盖过聚合值时，仍以库内实际数据重算。
+            for trace_id, delta in deltas.items():
+                if trace_id in replaced:
+                    self._conn.execute(
+                        "UPDATE traces SET total_tokens="
+                        "(SELECT COALESCE(SUM(token_in+token_out),0) "
+                        "FROM spans WHERE trace_id=traces.id) WHERE id=?", (trace_id,),
+                    )
+                elif delta:
+                    self._conn.execute(
+                        "UPDATE traces SET total_tokens=total_tokens+? WHERE id=?",
+                        (delta, trace_id),
+                    )
+
+    def _span_tokens(self, ids: set[str]) -> dict[str, tuple[str, int]]:
+        tokens = {}
+        ordered = list(ids)
+        # 兼容 SQLite 较低的绑定参数上限，大批量导入也不拼接事件内容。
+        for offset in range(0, len(ordered), 500):
+            batch = ordered[offset:offset + 500]
+            placeholders = ",".join("?" for _ in batch)
+            rows = self._conn.execute(
+                "SELECT id,trace_id,token_in+token_out FROM spans "
+                f"WHERE id IN ({placeholders})", batch,
+            )
+            tokens.update((span_id, (trace_id, total)) for span_id, trace_id, total in rows)
+        return tokens
 
     def close(self) -> None:
         self._conn.close()

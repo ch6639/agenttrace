@@ -57,6 +57,12 @@ def test_dumps_truncates_oversized_value() -> None:
     assert len(wrapped["head"].encode("utf-8")) <= MAX_FIELD_BYTES
 
 
+def test_escaped_truncation_still_fits_field_limit():
+    encoded = dumps("\\\"\n" * MAX_FIELD_BYTES)
+    assert json.loads(encoded)["__truncated__"]
+    assert len(encoded.encode("utf-8")) <= MAX_FIELD_BYTES
+
+
 def test_estimate_tokens_is_len_div_4() -> None:
     assert estimate_tokens("abcd") == 1
     assert estimate_tokens("abc") == 0
@@ -87,6 +93,13 @@ def test_trace_finish_sets_latency_and_tokens() -> None:
     assert trace.total_tokens == 128
     assert trace.end_time is not None
     assert trace.latency_ms is not None and trace.latency_ms >= 0
+
+
+def test_trace_duration_uses_monotonic_clock(monkeypatch):
+    trace = Trace(name="clock-jump", start_time="2000-01-01T00:00:00+00:00")
+    monkeypatch.setattr(model.time, "monotonic_ns", lambda: trace._mono_start + 12_000_000)
+    trace.finish("success")
+    assert trace.latency_ms == 12
 
 
 def test_type_and_status_constants() -> None:

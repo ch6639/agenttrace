@@ -1,0 +1,21 @@
+{
+  "status": "passed",
+  "measured_at": "2026-10-22T06:54:38.335605+00:00",
+  "traces": 1000,
+  "assets_checked": [
+    "/assets/FailureChart-BXugZBUl.js",
+    "/assets/index-D-AacT7v.css",
+    "/assets/index-DbXk5Syy.js"
+  ],
+  "checks": [
+    "installed CLI",
+    "real HTTP health/list/detail/stats",
+    "SPA routes",
+    "entry assets and lazy JS chunks"
+  ],
+  "limitations": [
+    "HTTP 资源检查不替代浏览器渲染验收"
+  ],
+  "wheel_sha256": "51b17aff9d140d8ec3bc8038126d5f550900a6006e2e0fbecc5f0bfea1124f44",
+  "wheel_size_bytes": 396929
+}

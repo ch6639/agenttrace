@@ -1,0 +1,226 @@
+{
+  "measured_at": "2026-10-22T06:47:48.651395+00:00",
+  "python": "3.11.9",
+  "platform": "Windows-10-10.0.26200-SP0",
+  "profile_total_ms": 666.44,
+  "hot_functions": [
+    {
+      "file": "performance_suite.py",
+      "line": 29,
+      "function": "measure_case",
+      "calls": 1,
+      "own_ms": 0.569,
+      "cumulative_ms": 668.194
+    },
+    {
+      "file": "intercept.py",
+      "line": 185,
+      "function": "wrapper",
+      "calls": 303,
+      "own_ms": 1.123,
+      "cumulative_ms": 661.927
+    },
+    {
+      "file": "pipeline.py",
+      "line": 146,
+      "function": "_commit_events",
+      "calls": 1111,
+      "own_ms": 3.419,
+      "cumulative_ms": 556.017
+    },
+    {
+      "file": "pipeline.py",
+      "line": 203,
+      "function": "_write_batch",
+      "calls": 1111,
+      "own_ms": 6.469,
+      "cumulative_ms": 548.982
+    },
+    {
+      "file": "storage.py",
+      "line": 117,
+      "function": "write_batch",
+      "calls": 1111,
+      "own_ms": 7.698,
+      "cumulative_ms": 535.092
+    },
+    {
+      "file": "performance_suite.py",
+      "line": 52,
+      "function": "workflow",
+      "calls": 202,
+      "own_ms": 0.383,
+      "cumulative_ms": 486.52
+    },
+    {
+      "file": "performance_suite.py",
+      "line": 60,
+      "function": "<lambda>",
+      "calls": 101,
+      "own_ms": 0.066,
+      "cumulative_ms": 486.463
+    },
+    {
+      "file": "~",
+      "line": 0,
+      "function": "<method '__exit__' of 'sqlite3.Connection' objects>",
+      "calls": 1111,
+      "own_ms": 483.205,
+      "cumulative_ms": 483.205
+    },
+    {
+      "file": "pipeline.py",
+      "line": 109,
+      "function": "enqueue_span",
+      "calls": 909,
+      "own_ms": 0.42,
+      "cumulative_ms": 437.047
+    },
+    {
+      "file": "pipeline.py",
+      "line": 131,
+      "function": "_enqueue",
+      "calls": 909,
+      "own_ms": 1.027,
+      "cumulative_ms": 436.627
+    },
+    {
+      "file": "intercept.py",
+      "line": 76,
+      "function": "__enter__",
+      "calls": 505,
+      "own_ms": 3.518,
+      "cumulative_ms": 340.474
+    },
+    {
+      "file": "intercept.py",
+      "line": 105,
+      "function": "__exit__",
+      "calls": 505,
+      "own_ms": 1.782,
+      "cumulative_ms": 243.735
+    },
+    {
+      "file": "performance_suite.py",
+      "line": 41,
+      "function": "wrapper",
+      "calls": 202,
+      "own_ms": 0.721,
+      "cumulative_ms": 210.695
+    },
+    {
+      "file": "pipeline.py",
+      "line": 112,
+      "function": "enqueue_root",
+      "calls": 202,
+      "own_ms": 0.294,
+      "cumulative_ms": 120.71
+    },
+    {
+      "file": "intercept.py",
+      "line": 203,
+      "function": "log_step",
+      "calls": 101,
+      "own_ms": 0.469,
+      "cumulative_ms": 58.047
+    },
+    {
+      "file": "model.py",
+      "line": 105,
+      "function": "dumps",
+      "calls": 1111,
+      "own_ms": 2.196,
+      "cumulative_ms": 23.24
+    },
+    {
+      "file": "model.py",
+      "line": 44,
+      "function": "_configured_secrets",
+      "calls": 2121,
+      "own_ms": 0.901,
+      "cumulative_ms": 22.017
+    },
+    {
+      "file": "storage.py",
+      "line": 150,
+      "function": "_span_tokens",
+      "calls": 2222,
+      "own_ms": 5.436,
+      "cumulative_ms": 21.231
+    },
+    {
+      "file": "~",
+      "line": 0,
+      "function": "<method 'executemany' of 'sqlite3.Connection' objects>",
+      "calls": 2222,
+      "own_ms": 20.144,
+      "cumulative_ms": 20.144
+    },
+    {
+      "file": "api.py",
+      "line": 45,
+      "function": "get_runtime",
+      "calls": 606,
+      "own_ms": 0.47,
+      "cumulative_ms": 18.667
+    },
+    {
+      "file": "storage.py",
+      "line": 96,
+      "function": "__init__",
+      "calls": 1,
+      "own_ms": 1.799,
+      "cumulative_ms": 18.089
+    },
+    {
+      "file": "storage.py",
+      "line": 107,
+      "function": "_migrate",
+      "calls": 1,
+      "own_ms": 0.022,
+      "cumulative_ms": 15.237
+    },
+    {
+      "file": "~",
+      "line": 0,
+      "function": "<method 'execute' of 'sqlite3.Connection' objects>",
+      "calls": 2630,
+      "own_ms": 13.83,
+      "cumulative_ms": 13.83
+    },
+    {
+      "file": "~",
+      "line": 0,
+      "function": "<method 'executescript' of 'sqlite3.Connection' objects>",
+      "calls": 1,
+      "own_ms": 13.261,
+      "cumulative_ms": 13.261
+    },
+    {
+      "file": "<frozen os>",
+      "line": 713,
+      "function": "copy",
+      "calls": 101,
+      "own_ms": 2.412,
+      "cumulative_ms": 12.978
+    }
+  ],
+  "aggregation_comparison": {
+    "full_scan": {
+      "spans": 3000,
+      "total_ms": 740.837,
+      "first_100_mean_ms": 0.10903,
+      "last_100_mean_ms": 0.33492
+    },
+    "delta": {
+      "spans": 3000,
+      "total_ms": 393.319,
+      "first_100_mean_ms": 0.10472,
+      "last_100_mean_ms": 0.10288
+    }
+  },
+  "limitations": [
+    "剖析有额外开销，不替代无剖析的性能矩阵",
+    "Token 算法对照使用 WAL+NORMAL 隔离 fsync 成本，不能作为默认 durable 性能或持久性证据"
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "python": "3.11.9",
+  "platform": "Windows-10-10.0.26200-SP0",
+  "iterations": 100,
+  "workload_delay_ms": 20,
+  "baseline_mean_ms": 20.6496,
+  "instrumented_mean_ms": 21.066,
+  "overhead_percent": 2.02,
+  "flush_ok": true,
+  "query_total_rows": 1000,
+  "query_1000_mean_ms": 8.7069,
+  "query_1000_max_ms": 11.3445,
+  "scope": "单个入口 trace，模拟等待负载；只读查询不含 HTTP、浏览器或图表渲染"
+}

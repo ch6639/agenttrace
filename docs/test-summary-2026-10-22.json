@@ -1,0 +1,31 @@
+{
+  "measured_at": "2026-10-22T06:52:27.396490+00:00",
+  "python": "3.11.9",
+  "platform": "Windows-10-10.0.26200-SP0",
+  "tests": 86,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "coverage_percent": 95.17,
+  "modules": {
+    "agenttrace/__init__.py": 100.0,
+    "agenttrace/api.py": 97.06,
+    "agenttrace/cli.py": 82.98,
+    "agenttrace/context.py": 100.0,
+    "agenttrace/intercept.py": 89.12,
+    "agenttrace/mock.py": 96.55,
+    "agenttrace/model.py": 97.64,
+    "agenttrace/pipeline.py": 96.63,
+    "agenttrace/query.py": 94.52,
+    "agenttrace/seed.py": 97.3,
+    "agenttrace/storage.py": 100.0,
+    "server/__init__.py": 100.0,
+    "server/main.py": 100.0
+  },
+  "ruff": "passed",
+  "pip_check": "passed",
+  "limitations": [
+    "Windows / Python 3.11.9 local run; remote CI is recorded separately",
+    "Online API protocol doubles are offline tests, not live acceptance"
+  ]
+}

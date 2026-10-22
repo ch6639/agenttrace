@@ -12,8 +12,11 @@ Sprint 1 任务 1（TDD：tests/test_model.py 先行）。
 from __future__ import annotations
 
 import json
+import os
+import re
 import time
 import uuid
+from contextvars import ContextVar
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
@@ -29,6 +32,61 @@ STATUS_FAILED = "failed"
 
 MAX_FIELD_BYTES = 64 * 1024  # D-08：input/output 单字段截断上限
 
+_SECRET_KEY = re.compile(
+    r"api[_-]?key|authorization|password|passwd|secret|access[_-]?token|"
+    r"refresh[_-]?token|credential|^headers$|^auth$", re.IGNORECASE
+)
+_redaction_secrets: ContextVar[tuple[str, ...] | None] = ContextVar(
+    "agenttrace_redaction_secrets", default=None
+)
+
+
+def _configured_secrets() -> tuple[str, ...]:
+    current = _redaction_secrets.get()
+    if current is not None:
+        return current
+    # Windows 的 os.environ 每项访问会做额外转换；一次快照后在字段树中复用。
+    return tuple(value for key, value in os.environ.copy().items()
+                 if len(value) >= 8 and _SECRET_KEY.search(key))
+
+
+def redact_text(text: str, *, secrets: tuple[str, ...] | None = None) -> str:
+    """屏蔽已配置密钥和常见凭据格式；自定义敏感文本应关闭 capture。"""
+    for value in _configured_secrets() if secrets is None else secrets:
+        text = text.replace(value, "[REDACTED]")
+    text = re.sub(r"\bsk-[A-Za-z0-9_-]{8,}", "[REDACTED]", text)
+    return re.sub(r"(?i)\bBearer\s+[^\s\"',}]+", "Bearer [REDACTED]", text)
+
+
+def safe_value(
+    value: Any, seen: set[int] | None = None, secrets: tuple[str, ...] | None = None,
+) -> Any:
+    """快照和结构化脱敏，不调用自定义 JSON 编码器。"""
+    secrets = _configured_secrets() if secrets is None else secrets
+    if isinstance(value, str):
+        return redact_text(value, secrets=secrets)
+    if value is None or isinstance(value, (bool, int, float)):
+        return value
+    seen = set() if seen is None else seen
+    if id(value) in seen:
+        return "[CIRCULAR]"
+    seen.add(id(value))
+    try:
+        if isinstance(value, dict):
+            return {
+                str(k): "[REDACTED]" if _SECRET_KEY.search(str(k))
+                else safe_value(v, seen, secrets)
+                for k, v in value.items()
+            }
+        if isinstance(value, (list, tuple)):
+            return [safe_value(v, seen, secrets) for v in value]
+        try:
+            return redact_text(repr(value), secrets=secrets)
+        except Exception:
+            return "[UNREPRESENTABLE]"
+    finally:
+        seen.remove(id(value))
+
 
 def new_id() -> str:
     return str(uuid.uuid4())
@@ -37,12 +95,6 @@ def new_id() -> str:
 def utc_now_iso() -> str:
     """ISO 8601 UTC，毫秒精度（AT-DES-001 §3.3 时间约定）。"""
     return datetime.now(UTC).isoformat(timespec="milliseconds")
-
-
-def _diff_ms(start: str, end: str) -> int:
-    s = datetime.fromisoformat(start)
-    e = datetime.fromisoformat(end)
-    return max(0, int((e - s).total_seconds() * 1000))
 
 
 def estimate_tokens(text: str) -> int:
@@ -56,13 +108,20 @@ def dumps(value: Any) -> str:
     截断结果保持合法 JSON：{"__truncated__": true, "head": "<前缀>"}。
     """
     try:
-        text = json.dumps(value, ensure_ascii=False, default=repr)
-    except (TypeError, ValueError):  # 循环引用等极端情况
-        text = json.dumps(repr(value), ensure_ascii=False)
+        text = json.dumps(safe_value(value), ensure_ascii=False)
+    except Exception:
+        text = '"[UNSERIALIZABLE]"'
     if len(text.encode("utf-8")) > MAX_FIELD_BYTES:
-        raw = text.encode("utf-8")[: MAX_FIELD_BYTES - 512]  # 预留包裹结构开销
-        head = raw.decode("utf-8", errors="ignore")
-        return json.dumps({"__truncated__": True, "head": head}, ensure_ascii=False)
+        # 转义字符可能在外层 JSON 中再次膨胀，按最终字节数二分。
+        low, high = 0, min(len(text), MAX_FIELD_BYTES)
+        while low < high:
+            mid = (low + high + 1) // 2
+            wrapped = json.dumps({"__truncated__": True, "head": text[:mid]}, ensure_ascii=False)
+            if len(wrapped.encode("utf-8")) <= MAX_FIELD_BYTES:
+                low = mid
+            else:
+                high = mid - 1
+        return json.dumps({"__truncated__": True, "head": text[:low]}, ensure_ascii=False)
     return text
 
 
@@ -80,6 +139,7 @@ class Trace:
     latency_ms: int | None = None
     error: str | None = None
     created_at: str = field(default_factory=utc_now_iso)
+    _mono_start: int = field(default_factory=time.monotonic_ns, repr=False, compare=False)
 
     def finish(
         self,
@@ -94,7 +154,7 @@ class Trace:
         if total_tokens is not None:
             self.total_tokens = total_tokens
         self.end_time = utc_now_iso()
-        self.latency_ms = _diff_ms(self.start_time, self.end_time)
+        self.latency_ms = max(0, (time.monotonic_ns() - self._mono_start) // 1_000_000)
 
     def to_row(self) -> dict[str, Any]:
         """展平为 spans/traces DDL 列名对应的行（供存储层 UPSERT）。"""

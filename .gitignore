@@ -16,10 +16,16 @@ htmlcov/
 *.db
 *.db-wal
 *.db-shm
+.env
+.env.*
+!.env.example
 
 # 前端
 web/node_modules/
 web/dist/
+.tools/
+server/static/
+.test-tmp/
 
 # IDE / 系统
 .idea/

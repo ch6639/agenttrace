@@ -5,26 +5,39 @@
 participant "Agent 业务线程" as App
 participant "intercept\n拦截器" as Icp
 participant "context\n上下文栈" as Ctx
-participant "pipeline\n内存队列" as Q
+participant "pipeline\ndurable / async" as Q
 participant "flusher\n后台线程" as F
 database "SQLite\n(WAL)" as DB
 
 == 任务开始 ==
 App -> Icp : @agenttrace.trace() 进入
+Icp -> Q : Trace 占位（status=running）+ 根 Span
+alt 默认 durable
+  Q -> DB : 根 Trace/Span 同事务 UPSERT（WAL + FULL）
+  DB --> Q : COMMIT 完成
+  Q --> Icp : 确认后返回
+else 显式 async
+  Q -> Q : 有界队列入队即返回
+end
 Icp -> Ctx : push 根上下文（trace_id）
-Icp -> Q : 入队 Trace 占位（status=running）+ 根 Span
-note right of Q : 入队即返回（微秒级），\n业务线程不等待落盘
 
 == 事件产生（LLM/工具/步骤）==
 App -> Icp : @tool / with llm() / log_step()
 Icp -> Ctx : 读取当前上下文 → 推导 parent_id
-Icp -> Q : 入队 Span 事件（含输入快照）
+Icp -> Q : Span 事件（含输入快照）
+alt 默认 durable
+  Q -> DB : 单事件事务提交，写锁串行化
+  DB --> Q : COMMIT 完成
+else 显式 async
+  Q -> Q : 入队，等待后台批量提交
+end
 
 App -> Icp : 函数抛出异常
 Icp -> Q : 入队 Span 更新（status=failed,\nstatus_message=异常栈摘要）
 note right of Icp : 异常照常向 Agent 抛出，\n业务行为零改变（FR-1.2）
 
 == 异步批量落盘 ==
+opt 仅显式 async 模式
 activate F
 F -> Q : 每 500ms 或攒满 32 条触发
 Q --> F : 取出整批事件
@@ -35,13 +48,18 @@ deactivate DB
 F -> Q : 写失败 → 重试（≤3 次）
 F -> F : 仍失败：跳过该批 +\n控制台告警（旁路失效，NFR-3）
 deactivate F
+end
 
 == 任务结束与进程退出 ==
 App -> Icp : @trace 返回/异常退出
+Icp -> Q : 根 Trace/Span 终态\n（success/failed、end_time、total_tokens）
+alt 默认 durable
+  Q -> DB : 根 Trace/Span 原子提交确认
+else 显式 async
+  Q -> Q : 入队终态
+end
 Icp -> Ctx : pop 根上下文
-Icp -> Q : 入队 Trace 终态\n（success/failed、end_time、total_tokens）
-App -> F : atexit（或显式 agenttrace.flush()）
-F -> Q : 排空队列（timeout=5s）
-F -> DB : 最后一批落盘
-note over F, DB : FR-2.4 口径：常态批量间隔 ≤500ms\n满足"1 秒内写入"；进程被强杀时，\n丢失上限 = 队列中未落盘的最后一批
+App -> Q : flush / shutdown / atexit
+Q -> Q : 等待在途事务；async 同时排空队列
+note over Q, DB : durable：已确认事件已提交，\n强杀最多回滚当前未确认事件；\nasync：队列和在途批可能丢失，不提供同等保证。\n写失败：有限重试 + 脱敏告警 + diagnostics / flush=False
 @enduml

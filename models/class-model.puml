@@ -42,13 +42,14 @@ Span "0..1" -- "0..*" Span : 父子
 note top of Trace
   status 取值：running / success / failed
   session_id：可空，会话分组预留（本期 UI 不使用）
-  latency_ms：end_time - start_time
+  latency_ms：monotonic_ns 差值
 end note
 
 note right of Span
   type 取值：llm / tool / step
   llm/tool 有起止时间（duration_ms 必填）
-  step 为瞬时事件（duration_ms 为空）
+  log_step 为瞬时事件（duration_ms 为空）
+  任务根 step 有持续时间
   status_message：异常/状态说明，与 output 分离
   model：仅 llm 类型使用
   is_stream：流式 LLM 响应标记（FR-2.5）

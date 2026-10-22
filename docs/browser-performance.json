@@ -1,0 +1,10 @@
+{
+  "date": "2026-10-15",
+  "browser": "Codex in-app browser",
+  "dataset_traces": 1001,
+  "page_size": 20,
+  "navigation_to_list_ready_ms": 949,
+  "list_fetch_and_dom_update_ms": 193,
+  "stats_lazy_chart_verified": true,
+  "scope": "本机新构建列表导航的一次样本；未强制清空浏览器全部缓存；统计图就绪另行走查"
+}
