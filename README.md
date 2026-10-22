@@ -87,7 +87,7 @@ SpanHandle，**不会替你调用 LLM**；流式调用需在 with 内聚合增�
 
 已打通 SDK → 离线双工具 Agent → SQLite → FastAPI → Vue 三视图。查询 API 支持时间/状态
 过滤、排序和分页；查看器提供失败标红、流式详情、Token/成功率/平均事件数/失败类型统计。
-92 项 Python 测试通过，SDK + 服务端覆盖率 95.17%；生产前端构建通过。
+94 项 Python 测试通过，SDK + 服务端覆盖率 95.17%；生产前端构建通过。
 默认 durable 已通过提交前/中/后子进程强杀和独立连接可读测试；补齐非侵入基线、并发隔离、
 过载告警与依赖快照。首屏 JS 由 1.47 MB 降至约 490 KB，统计图按需加载。
 本轮增加 Token 差值汇总、独立虚拟环境安装及实际 HTTP 验收、三请求在线验收工具。
@@ -96,13 +96,17 @@ SpanHandle，**不会替你调用 LLM**；流式调用需在 with 内聚合增�
 注意验收边界：默认 durable 在健康存储下于记录调用返回前确认提交；可选 async 不保证强杀
 只丢最后一条。本轮 30 次矩阵中 durable 的 20 ms 多步骤场景开销约 70.21%，200 ms
 场景约 8.86%，短任务尚未达到 10%；不将算法优化冒充整体性能达标。
-真实在线 API、可选 `patch_openai()` 和课程交付材料仍待完成。
+DeepSeek 真实普通/SSE/主动取消三项调用已通过；双工具业务全链路、远程 CI、可选
+`patch_openai()` 和课程交付材料仍待完成。实际在线证据见
+[DeepSeek 报告](docs/deepseek-acceptance.json)。
 
 ## 运行约定
 
 DeepSeek 接入：在本机终端执行
 `.venv\Scripts\python.exe scripts\verify_deepseek.py`，在隐藏提示中输入密钥即可。
 脚本配置 `deepseek-flash` 与官方地址，执行三个有输出上限的验收请求；密钥不写入报告。
+双工具业务验收使用 `.venv\Scripts\python.exe scripts\verify_deepseek.py --demo`，
+仅执行“答疑 → 笔记整理”的两次模型请求，报告另存，保留已有三项接口验收证据。
 接入说明与无网络预检见 [示例说明](examples/README.md#deepseek-本机接入)。
 
 - `--db` 可指定 SQLite 文件；默认 SDK、示例和 CLI 均用当前目录的 `agenttrace.db`。

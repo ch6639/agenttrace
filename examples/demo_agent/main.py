@@ -77,7 +77,10 @@ def call_llm(
             raise RuntimeError("LLM 流在完成信号前中断")
 
 
-def ask_llm(prompt: str, *, mock: bool, stream: bool, client: MockClient | None) -> str:
+def ask_llm(
+    prompt: str, *, mock: bool, stream: bool, client: MockClient | None,
+    max_tokens: int | None = None,
+) -> str:
     model = "mock-tutor" if mock else os.environ.get("OPENAI_MODEL", "")
     # 观测只在统一 LLM 助手处包裹，业务调用不依赖 SDK handle。
     with at.llm(model=model, input=prompt, is_stream=stream) as gen:
@@ -85,7 +88,8 @@ def ask_llm(prompt: str, *, mock: bool, stream: bool, client: MockClient | None)
             gen.update(output=output, token_in=usage.get("prompt_tokens"),
                        token_out=usage.get("completion_tokens"))
         return collect_response(
-            call_llm(prompt, mock=mock, stream=stream, client=client, model=model), update,
+            call_llm(prompt, mock=mock, stream=stream, client=client, model=model,
+                     max_tokens=max_tokens), update,
         )
 
 

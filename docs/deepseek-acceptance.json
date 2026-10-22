@@ -1,0 +1,52 @@
+{
+  "measured_at": "2026-10-22T08:22:40.385474+00:00",
+  "cases": [
+    {
+      "case": "non_stream",
+      "passed": true,
+      "flush_ok": true,
+      "error_type": null,
+      "trace_status": "success",
+      "has_output": true,
+      "secret_absent": true,
+      "usage_returned": true,
+      "estimated": false,
+      "total_tokens": 31
+    },
+    {
+      "case": "stream",
+      "passed": true,
+      "flush_ok": true,
+      "error_type": null,
+      "trace_status": "success",
+      "has_output": true,
+      "secret_absent": true,
+      "usage_returned": true,
+      "estimated": false,
+      "total_tokens": 32
+    },
+    {
+      "case": "client_cancel",
+      "passed": true,
+      "flush_ok": true,
+      "error_type": "InterruptedError",
+      "trace_status": "failed",
+      "has_output": true,
+      "secret_absent": true,
+      "usage_returned": false,
+      "estimated": true,
+      "total_tokens": 15
+    }
+  ],
+  "requests_planned": 3,
+  "max_tokens_per_request": 64,
+  "limitations": [
+    "client_cancel 是调用方主动取消，不冒充服务端断流故障",
+    "取消时 usage 可能缺失，允许明确标记的 Token 估算"
+  ],
+  "status": "passed",
+  "provider": "deepseek",
+  "model": "deepseek-flash",
+  "base_url": "https://api.deepseek.com",
+  "thinking": "disabled"
+}

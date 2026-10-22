@@ -20,8 +20,9 @@
   流式 usage 不可用时由 SDK 标记估算。SDK handle 不代替业务调用。
 - **指定文件**：`--db ./agenttrace-demo.db`；查看时使用 `agenttrace ui --db ./agenttrace-demo.db`。
 
-TC-16：离线双工具已通过跨进程集成测试。TC-17：真实非流式/SSE 协议用替身测试通过，
-成功流与中断流均有回归；尚未连接真实服务或消费真实密钥，不能标记为在线验收通过。
+TC-16：离线双工具已通过跨进程集成测试。2026-10-22 用户在本机运行 DeepSeek 真实验收，
+普通/SSE/主动取消三种模型调用通过，见 [真实报告](../docs/deepseek-acceptance.json)。
+TC-17 仍需完整双工具业务在线结果，不能以独立 LLM 调用代替完整 Agent 流程。
 
 在线验收工具：在本机设置上述环境变量后执行 `python -m scripts.verify_online`，依次检查
 普通响应、SSE 完整响应、首段文本后的调用方取消。总计三个请求，每次默认最多 64 个输出
@@ -50,6 +51,16 @@ Token 与布尔检查项，不保存密钥或回答正文。配置缺失返回 2
 成功结果写入 `docs/deepseek-acceptance.json`，包含三种调用的状态、Token、持久化与脱敏
 检查结果。无需向聊天发送密钥；运行后告知已完成，即可从该报告核对在线验收结果。
 
+完整双工具业务验收另行执行：
+
+```powershell
+.venv\Scripts\python.exe scripts\verify_deepseek.py --demo
+```
+
+此模式仅执行“课程答疑 → 笔记整理”两个真实请求，每次最多 64 个输出 Token，检查六个
+Span、两个工具、两次流式 LLM 的父子关系、业务输出和 Token 汇总。
+结果单独写入 `docs/deepseek-demo-acceptance.json`，不覆盖三项调用的已有报告。
+
 无密钥、无网络的脚本预检：
 
 ```powershell
@@ -61,8 +72,9 @@ Token 与布尔检查项，不保存密钥或回答正文。配置缺失返回 2
 入口使用 Python，可直接在 Windows 默认 PowerShell 策略下运行，无需调整执行策略。
 
 本示例对官方 `api.deepseek.com` 域名显式传入 `thinking.type=disabled`，保持普通文本验收
-和短输出预算；其他兼容服务不附加该参数。Mock 默认路径保持离线。需要运行双工具真实
-Demo 时，在同一终端自行设置三个 `OPENAI_*` 配置，再使用 `--real --stream`。
+和短输出预算；其他兼容服务不附加该参数。Mock 默认路径保持离线。也可在同一终端自行
+设置三个 `OPENAI_*` 配置，再用 `--real --stream` 运行 Demo；正式验收优先使用有输出上限
+的 `--demo` 入口。
 
 ## 非侵入基线与持久模式
 

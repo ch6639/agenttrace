@@ -20,6 +20,7 @@ def main(argv=None):
     parser.add_argument("--max-tokens", type=int, default=64, choices=range(1, 129),
                         metavar="1..128")
     parser.add_argument("--model", default=DEFAULT_MODEL)
+    parser.add_argument("--demo", action="store_true", help="仅验收双工具业务全流程，两次请求")
     parser.add_argument("--output", type=Path)
     args = parser.parse_args(argv)
     project = Path(__file__).resolve().parents[1]
@@ -28,6 +29,8 @@ def main(argv=None):
     from scripts.verify_online import main as verify
 
     report_name = "deepseek-preflight.json" if args.check_config else "deepseek-acceptance.json"
+    if args.demo and not args.check_config:
+        report_name = "deepseek-demo-acceptance.json"
     output = args.output or project / "docs" / report_name
     names = ("OPENAI_API_KEY", "OPENAI_BASE_URL", "OPENAI_MODEL")
     previous = {name: os.environ.get(name) for name in names}
@@ -45,8 +48,12 @@ def main(argv=None):
         os.environ.update(OPENAI_API_KEY=key.strip(), OPENAI_BASE_URL=BASE_URL,
                           OPENAI_MODEL=args.model)
         if key.strip():
-            print(f"DeepSeek: 3 requests, max {args.max_tokens} output tokens each.")
-        result = verify(["--max-tokens", str(args.max_tokens), "--output", str(output)])
+            requests = 2 if args.demo else 3
+            print(f"DeepSeek: {requests} requests, max {args.max_tokens} output tokens each.")
+        arguments = ["--max-tokens", str(args.max_tokens), "--output", str(output)]
+        if args.demo:
+            arguments.append("--demo-only")
+        result = verify(arguments)
         report = json.loads(output.read_text(encoding="utf-8"))
         report.update(provider="deepseek", model=args.model, base_url=BASE_URL,
                       thinking="disabled")

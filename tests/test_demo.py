@@ -182,7 +182,7 @@ def test_deepseek_non_thinking_request_and_final_chunk_usage(tmp_path, monkeypat
     original_call = demo.call_llm
 
     def limited_call(prompt, **kwargs):
-        return original_call(prompt, max_tokens=64, **kwargs)
+        return original_call(prompt, **(kwargs | {"max_tokens": 64}))
 
     def transport(request, timeout):
         assert request.full_url == "https://api.deepseek.com/chat/completions"

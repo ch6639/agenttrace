@@ -38,6 +38,7 @@ def test_hidden_key_is_used_temporarily_and_not_written_to_report(tmp_path, monk
     previous = dict(os.environ)
 
     def fake_verify(argv):
+        assert "--demo-only" in argv
         assert os.environ["OPENAI_API_KEY"] == key
         assert os.environ["OPENAI_BASE_URL"] == "https://api.deepseek.com"
         assert os.environ["OPENAI_MODEL"] == "deepseek-flash"
@@ -47,7 +48,7 @@ def test_hidden_key_is_used_temporarily_and_not_written_to_report(tmp_path, monk
 
     monkeypatch.setattr(verify_online, "main", fake_verify)
     output = tmp_path / "report.json"
-    assert verify_deepseek.main(["--output", str(output)]) == 0
+    assert verify_deepseek.main(["--demo", "--output", str(output)]) == 0
     assert key not in output.read_text(encoding="utf-8")
     assert all(os.environ.get(name) == value for name, value in previous.items())
     assert set(os.environ) == set(previous)
