@@ -84,6 +84,7 @@ def test_real_mode_adapter_with_fake_transport(tmp_path, monkeypatch):
         assert request.full_url == "https://example.test/v1/chat/completions"
         assert request.get_header("Authorization") == "Bearer test-secret-123456"
         assert timeout == 30
+        assert "thinking" not in json.loads(request.data)  # 不影响其他兼容服务。
         return Response()
 
     monkeypatch.setenv("OPENAI_API_KEY", "test-secret-123456")
@@ -144,5 +145,68 @@ def test_real_sse_adapter_preserves_partial_on_disconnect(tmp_path, monkeypatch,
             assert span[0] == ("success" if complete else "failed")
             if complete:
                 assert span[2:] == (8, 4)
+    finally:
+        at.shutdown()
+
+
+@pytest.mark.parametrize("stream", [False, True])
+def test_deepseek_non_thinking_request_and_final_chunk_usage(tmp_path, monkeypatch, stream):
+    from examples.demo_agent import main as demo
+
+    monkeypatch.setenv("OPENAI_API_KEY", "deepseek-test-secret-123456")
+    monkeypatch.setenv("OPENAI_MODEL", "deepseek-flash")
+    monkeypatch.setenv("OPENAI_BASE_URL", "https://api.deepseek.com/")
+
+    class Response:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            pass
+
+        def read(self):
+            return json.dumps({"choices": [{"message": {"content": "answer"}}],
+                               "usage": {"prompt_tokens": 3, "completion_tokens": 2}}).encode()
+
+        def __iter__(self):
+            yield b': keepalive\n'
+            # DeepSeek 的 usage 位于最后一个 choice chunk，不是独立 usage-only chunk。
+            for event in (
+                {"choices": [{"delta": {"content": "answer"}, "finish_reason": None}]},
+                {"choices": [{"delta": {"content": None}, "finish_reason": "stop"}],
+                 "usage": {"prompt_tokens": 3, "completion_tokens": 2}},
+            ):
+                yield ("data: " + json.dumps(event) + "\n").encode()
+            yield b'data: [DONE]\n'
+
+    original_call = demo.call_llm
+
+    def limited_call(prompt, **kwargs):
+        return original_call(prompt, max_tokens=64, **kwargs)
+
+    def transport(request, timeout):
+        assert request.full_url == "https://api.deepseek.com/chat/completions"
+        payload = json.loads(request.data)
+        assert payload["model"] == "deepseek-flash"
+        assert payload["thinking"] == {"type": "disabled"}
+        assert payload["max_tokens"] == 64 and payload["stream"] == stream
+        if stream:
+            assert payload["stream_options"] == {"include_usage": True}
+        assert request.get_header("Authorization") == "Bearer deepseek-test-secret-123456"
+        return Response()
+
+    monkeypatch.setattr(demo, "call_llm", limited_call)
+    monkeypatch.setattr(demo, "urlopen", transport)
+    db = tmp_path / "deepseek.db"
+    at.init(db)
+    try:
+        with at.session("deepseek"):
+            assert demo.ask_llm("q", mock=False, stream=stream, client=None) == "answer"
+        assert at.flush()
+        with sqlite3.connect(db) as conn:
+            assert conn.execute("SELECT total_tokens FROM traces").fetchone()[0] == 5
+            assert conn.execute(
+                "SELECT token_in,token_out FROM spans WHERE type='llm'",
+            ).fetchone() == (3, 2)
     finally:
         at.shutdown()

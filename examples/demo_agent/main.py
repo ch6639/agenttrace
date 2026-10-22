@@ -6,6 +6,7 @@ import argparse
 import json
 import os
 from collections.abc import Iterator
+from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
 
 import agenttrace as at
@@ -33,13 +34,16 @@ def call_llm(
         raise ValueError("真实模式需要 OPENAI_MODEL，填写所用兼容 API 的模型名")
     payload = {"model": model, "messages": [{"role": "user", "content": prompt}],
                "stream": stream}
+    base_url = os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1").rstrip("/")
+    # DeepSeek 默认开启思考；本示例只验收最终文本，短输出预算需显式关闭。
+    if urlsplit(base_url).hostname == "api.deepseek.com":
+        payload["thinking"] = {"type": "disabled"}
     if max_tokens is not None:
         payload["max_tokens"] = max_tokens
     if stream:
         payload["stream_options"] = {"include_usage": True}
     request = Request(
-        os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1").rstrip("/")
-        + "/chat/completions",
+        base_url + "/chat/completions",
         data=json.dumps(payload).encode("utf-8"),
         headers={"Authorization": "Bearer " + key, "Content-Type": "application/json"},
     )

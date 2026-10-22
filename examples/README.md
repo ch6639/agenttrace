@@ -29,6 +29,41 @@ Token（可用 `--max-tokens 1..128`）；服务需支持 `max_tokens` 和流式
 Token 与布尔检查项，不保存密钥或回答正文。配置缺失返回 2，验收失败返回 1，全通过返回 0。
 密钥应在本机配置，勿写入源码、提交数据库或发送到聊天。
 
+## DeepSeek 本机接入
+
+当前默认配置：`https://api.deepseek.com` + `deepseek-flash`，按官方 Chat Completions
+接口调用。官方文档核对日期为 2026-10-22：
+[首次调用](https://api-docs.deepseek.com/) /
+[接口参数](https://api-docs.deepseek.com/api/create-chat-completion/)。
+
+在项目仓库根目录打开终端，执行：
+
+```powershell
+.venv\Scripts\python.exe scripts\verify_deepseek.py
+```
+
+在隐藏输入提示后粘贴 DeepSeek API Key 并按回车。密钥不回显，不作为命令参数，不写入配置
+文件或验收报告；仅供本次 Python 进程使用，结束后还原原有环境变量。
+如该进程已设置 `DEEPSEEK_API_KEY`，脚本使用它；不会自动取用原有 `OPENAI_API_KEY`。
+脚本默认完成三个真实请求，每个最多 64 个输出 Token；账号需要有可用的 API 调用权限。
+
+成功结果写入 `docs/deepseek-acceptance.json`，包含三种调用的状态、Token、持久化与脱敏
+检查结果。无需向聊天发送密钥；运行后告知已完成，即可从该报告核对在线验收结果。
+
+无密钥、无网络的脚本预检：
+
+```powershell
+.venv\Scripts\python.exe scripts\verify_deepseek.py --check-config
+```
+
+预检强制不提供密钥，只生成 `docs/deepseek-preflight.json`；预期状态 `blocked`、退出码 2，
+不能作为在线通过的证据。真实执行可用 `--model MODEL` 或 `--max-tokens 128` 调整参数。
+入口使用 Python，可直接在 Windows 默认 PowerShell 策略下运行，无需调整执行策略。
+
+本示例对官方 `api.deepseek.com` 域名显式传入 `thinking.type=disabled`，保持普通文本验收
+和短输出预算；其他兼容服务不附加该参数。Mock 默认路径保持离线。需要运行双工具真实
+Demo 时，在同一终端自行设置三个 `OPENAI_*` 配置，再使用 `--real --stream`。
+
 ## 非侵入基线与持久模式
 
 `business.py` 不导入 AgentTrace。`main.create_tutor(observed=False)` 运行未接入版本；

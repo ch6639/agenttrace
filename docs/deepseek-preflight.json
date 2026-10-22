@@ -1,0 +1,18 @@
+{
+  "measured_at": "2026-10-22T08:16:11.712977+00:00",
+  "cases": [],
+  "requests_planned": 3,
+  "max_tokens_per_request": 64,
+  "limitations": [
+    "client_cancel 是调用方主动取消，不冒充服务端断流故障",
+    "取消时 usage 可能缺失，允许明确标记的 Token 估算"
+  ],
+  "status": "blocked",
+  "missing_configuration": [
+    "OPENAI_API_KEY"
+  ],
+  "provider": "deepseek",
+  "model": "deepseek-flash",
+  "base_url": "https://api.deepseek.com",
+  "thinking": "disabled"
+}

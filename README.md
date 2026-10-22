@@ -87,7 +87,7 @@ SpanHandle，**不会替你调用 LLM**；流式调用需在 with 内聚合增�
 
 已打通 SDK → 离线双工具 Agent → SQLite → FastAPI → Vue 三视图。查询 API 支持时间/状态
 过滤、排序和分页；查看器提供失败标红、流式详情、Token/成功率/平均事件数/失败类型统计。
-86 项 Python 测试通过，SDK + 服务端覆盖率 95.17%；生产前端构建通过。
+92 项 Python 测试通过，SDK + 服务端覆盖率 95.17%；生产前端构建通过。
 默认 durable 已通过提交前/中/后子进程强杀和独立连接可读测试；补齐非侵入基线、并发隔离、
 过载告警与依赖快照。首屏 JS 由 1.47 MB 降至约 490 KB，统计图按需加载。
 本轮增加 Token 差值汇总、独立虚拟环境安装及实际 HTTP 验收、三请求在线验收工具。
@@ -99,6 +99,11 @@ SpanHandle，**不会替你调用 LLM**；流式调用需在 with 内聚合增�
 真实在线 API、可选 `patch_openai()` 和课程交付材料仍待完成。
 
 ## 运行约定
+
+DeepSeek 接入：在本机终端执行
+`.venv\Scripts\python.exe scripts\verify_deepseek.py`，在隐藏提示中输入密钥即可。
+脚本配置 `deepseek-flash` 与官方地址，执行三个有输出上限的验收请求；密钥不写入报告。
+接入说明与无网络预检见 [示例说明](examples/README.md#deepseek-本机接入)。
 
 - `--db` 可指定 SQLite 文件；默认 SDK、示例和 CLI 均用当前目录的 `agenttrace.db`。
 - 默认 `durability="durable"`：WAL + FULL，根 Trace/Span 原子提交；不依赖 atexit 才落盘。
