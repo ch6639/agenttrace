@@ -27,6 +27,7 @@ server = ["static/*", "static/assets/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]  # examples/scripts 是仓库内测试输入，不随 SDK wheel 发布。
 
 [tool.ruff]
 line-length = 100

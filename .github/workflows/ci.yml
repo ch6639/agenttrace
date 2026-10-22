@@ -34,7 +34,7 @@ jobs:
         run: ruff check .
 
       - name: 测试 + 覆盖率（门槛 70%，NFR-5/TC-22）
-        run: pytest --cov=agenttrace --cov=server --cov-fail-under=70 --cov-report=term-missing --cov-report=xml --junitxml=test-results.xml
+        run: python -m pytest --cov=agenttrace --cov=server --cov-fail-under=70 --cov-report=term-missing --cov-report=xml --junitxml=test-results.xml
 
       - name: 上传覆盖率报告
         if: always()

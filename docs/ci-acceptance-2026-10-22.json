@@ -1,10 +1,10 @@
 {
-  "checked_at": "2026-10-22T07:00:34.889688+00:00",
+  "checked_at": "2026-10-22T08:41:33.252271+00:00",
   "branch": "codex/m2-m3-closeout",
-  "source_commit": "ec4642ad046c7fdb867905ccc4e1d91385368509",
-  "push_status": "blocked_network",
-  "remote_ci_status": "not_run",
-  "run_url": null,
+  "source_commit": "fcf273c9a6d02edc6171013a36c748b68d7ecfc0",
+  "push_status": "pushed",
+  "remote_ci_status": "fix_pending_rerun",
+  "run_url": "https://github.com/ch6639/agenttrace/actions/runs/39748583545",
   "push_attempts": [
     {
       "transport": "default",
@@ -23,9 +23,21 @@
     "ref": "refs/heads/main",
     "commit": "a3287abc5f2bd094fd6e17f26509022c2e350210"
   },
-  "next_command": "git push -u origin codex/m2-m3-closeout",
   "limitations": [
-    "Local checks are not proof of Ubuntu/Windows remote CI success",
-    "Network failure is not a CI test failure"
+    "First run failed at test collection; fixed local run does not itself prove remote success",
+    "Live API fixtures are offline; separate DeepSeek report contains actual online checks"
+  ],
+  "run_id": 39748583545,
+  "conclusion": "failure",
+  "history": [
+    {
+      "source_commit": "fcf273c9a6d02edc6171013a36c748b68d7ecfc0",
+      "run_id": 39748583545,
+      "conclusion": "failure",
+      "run_url": "https://github.com/ch6639/agenttrace/actions/runs/39748583545",
+      "viewer": "success",
+      "python_matrix": "four collection failures: examples/scripts not on console pytest path",
+      "fix": "pytest pythonpath=[.] and current-interpreter python -m pytest; local console run 94 passed"
+    }
   ]
 }
