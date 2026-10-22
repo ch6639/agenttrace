@@ -98,9 +98,10 @@ SpanHandle，**不会替你调用 LLM**；流式调用需在 with 内聚合增�
 注意验收边界：默认 durable 在健康存储下于记录调用返回前确认提交；可选 async 不保证强杀
 只丢最后一条。本轮 30 次矩阵中 durable 的 20 ms 多步骤场景开销约 70.21%，200 ms
 场景约 8.86%，短任务尚未达到 10%；不将算法优化冒充整体性能达标。
-DeepSeek 真实普通/SSE/主动取消三项调用已通过；双工具业务全链路、可选
-`patch_openai()` 和课程交付材料仍待完成。实际在线证据见
-[DeepSeek 报告](docs/deepseek-acceptance.json)。
+DeepSeek 真实普通/SSE/主动取消及双工具业务全链路均已通过，本阶段功能与外部验收收尾完成。
+实际在线证据见 [三项调用报告](docs/deepseek-acceptance.json) 和
+[双工具报告](docs/deepseek-demo-acceptance.json)。后续按 M4 推进性能和压力验收，
+按 M5/M6 完成课程材料；可选 `patch_openai()` 属于增强项。
 
 ## 运行约定
 

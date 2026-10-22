@@ -26,7 +26,7 @@
   "limitations": [
     "Run validates source commit 05b426e; subsequent documentation archive commits are separate",
     "CI API fixtures are offline; live DeepSeek evidence remains in its separate report",
-    "TC-17 full two-tool online business flow still requires the --demo acceptance report"
+    "TC-17 full two-tool live acceptance is recorded separately in deepseek-demo-acceptance.json"
   ],
   "run_id": 39750948864,
   "conclusion": "success",
