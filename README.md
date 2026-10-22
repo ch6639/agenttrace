@@ -88,6 +88,8 @@ SpanHandle，**不会替你调用 LLM**；流式调用需在 with 内聚合增�
 已打通 SDK → 离线双工具 Agent → SQLite → FastAPI → Vue 三视图。查询 API 支持时间/状态
 过滤、排序和分页；查看器提供失败标红、流式详情、Token/成功率/平均事件数/失败类型统计。
 94 项 Python 测试通过，SDK + 服务端覆盖率 95.17%；生产前端构建通过。
+远程 CI 已全绿：Ubuntu/Windows × Python 3.11/3.12，以及 Viewer 构建与隔离安装验收，
+见 [实际运行](https://github.com/ch6639/agenttrace/actions/runs/39750948864)。
 默认 durable 已通过提交前/中/后子进程强杀和独立连接可读测试；补齐非侵入基线、并发隔离、
 过载告警与依赖快照。首屏 JS 由 1.47 MB 降至约 490 KB，统计图按需加载。
 本轮增加 Token 差值汇总、独立虚拟环境安装及实际 HTTP 验收、三请求在线验收工具。
@@ -96,7 +98,7 @@ SpanHandle，**不会替你调用 LLM**；流式调用需在 with 内聚合增�
 注意验收边界：默认 durable 在健康存储下于记录调用返回前确认提交；可选 async 不保证强杀
 只丢最后一条。本轮 30 次矩阵中 durable 的 20 ms 多步骤场景开销约 70.21%，200 ms
 场景约 8.86%，短任务尚未达到 10%；不将算法优化冒充整体性能达标。
-DeepSeek 真实普通/SSE/主动取消三项调用已通过；双工具业务全链路、远程 CI、可选
+DeepSeek 真实普通/SSE/主动取消三项调用已通过；双工具业务全链路、可选
 `patch_openai()` 和课程交付材料仍待完成。实际在线证据见
 [DeepSeek 报告](docs/deepseek-acceptance.json)。
 

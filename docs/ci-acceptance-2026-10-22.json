@@ -1,11 +1,11 @@
 {
-  "checked_at": "2026-10-22T08:41:33.252271+00:00",
+  "checked_at": "2026-10-22T08:53:02.793934+00:00",
   "branch": "codex/m2-m3-closeout",
-  "source_commit": "fcf273c9a6d02edc6171013a36c748b68d7ecfc0",
+  "source_commit": "05b426e4ca037d82c352077eaaa8d98f1c92c6c3",
   "push_status": "pushed",
-  "remote_ci_status": "fix_pending_rerun",
-  "run_url": "https://github.com/ch6639/agenttrace/actions/runs/39748583545",
-  "push_attempts": [
+  "remote_ci_status": "completed",
+  "run_url": "https://github.com/ch6639/agenttrace/actions/runs/39750948864",
+  "initial_push_attempts": [
     {
       "transport": "default",
       "result": "connection reset"
@@ -19,16 +19,17 @@
       "result": "github.com:443 connect timeout"
     }
   ],
-  "last_successful_remote_read": {
+  "initial_remote_read": {
     "ref": "refs/heads/main",
     "commit": "a3287abc5f2bd094fd6e17f26509022c2e350210"
   },
   "limitations": [
-    "First run failed at test collection; fixed local run does not itself prove remote success",
-    "Live API fixtures are offline; separate DeepSeek report contains actual online checks"
+    "Run validates source commit 05b426e; subsequent documentation archive commits are separate",
+    "CI API fixtures are offline; live DeepSeek evidence remains in its separate report",
+    "TC-17 full two-tool online business flow still requires the --demo acceptance report"
   ],
-  "run_id": 39748583545,
-  "conclusion": "failure",
+  "run_id": 39750948864,
+  "conclusion": "success",
   "history": [
     {
       "source_commit": "fcf273c9a6d02edc6171013a36c748b68d7ecfc0",
@@ -39,5 +40,43 @@
       "python_matrix": "four collection failures: examples/scripts not on console pytest path",
       "fix": "pytest pythonpath=[.] and current-interpreter python -m pytest; local console run 94 passed"
     }
-  ]
+  ],
+  "jobs": [
+    {
+      "id": 119731076802,
+      "name": "Viewer build",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/ch6639/agenttrace/actions/runs/39750948864/job/119731076802"
+    },
+    {
+      "id": 119731077138,
+      "name": "lint+test (windows-latest / py3.11)",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/ch6639/agenttrace/actions/runs/39750948864/job/119731077138"
+    },
+    {
+      "id": 119731077157,
+      "name": "lint+test (windows-latest / py3.12)",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/ch6639/agenttrace/actions/runs/39750948864/job/119731077157"
+    },
+    {
+      "id": 119731077241,
+      "name": "lint+test (ubuntu-latest / py3.11)",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/ch6639/agenttrace/actions/runs/39750948864/job/119731077241"
+    },
+    {
+      "id": 119731077311,
+      "name": "lint+test (ubuntu-latest / py3.12)",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/ch6639/agenttrace/actions/runs/39750948864/job/119731077311"
+    }
+  ],
+  "sync_transport": "GitHub Git Database REST API; identical object hashes; fast-forward only"
 }
